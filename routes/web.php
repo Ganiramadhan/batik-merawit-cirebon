@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\BatikController;
 use App\Http\Controllers\FishController;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RajaOngkirController;
 use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\IsAdmin;
 use Inertia\Inertia;
@@ -12,9 +15,9 @@ use Inertia\Inertia;
 
 
 
-Route::get('/', function () {
-    return Inertia::render('Auth/Login');
-});
+// Route::get('/', function () {
+//     return Inertia::render('Auth/Login');
+// });
 
 
 
@@ -29,12 +32,49 @@ Route::prefix('fish')->name('fish.')->group(function () {
     Route::delete('{fish}', [FishController::class, 'destroy'])->name('destroy');
 });
 
+// New Batik 
+Route::prefix('batik')->name('batik.')->group(function () {
+    // Menampilkan daftar batik
+    Route::get('/', [BatikController::class, 'index'])->name('index');
+    Route::post('/', [BatikController::class, 'store'])->name('store');
+    Route::post('{batik}', [BatikController::class, 'update'])->name('update');
+    Route::post('/delete/{batik}', [BatikController::class, 'destroy'])->name('batik.destroy');
+    Route::get('/{id}/download-qr', [BatikController::class, 'downloadQrCode'])->name('batik.downloadQr');
+
+    // Show Qr Scann 
+    Route::get('/{code}', [BatikController::class, 'detail'])->name('batik.detail');
+
+
+
+});
+
+
+// Member Data 
+Route::prefix('member')->name('member.')->group(function () {
+    Route::get('/', [MemberController::class, 'index'])->name('index');
+    Route::post('/', [MemberController::class, 'store'])->name('store');
+    Route::post('/delete/{member}', [MemberController::class, 'destroy'])->name('member.destroy');
+    Route::post('{member}', [MemberController::class, 'update'])->name('update');
+
+});
+
+
+// Transaction
+Route::prefix('transaction')->name('transaction.')->group(function () {
+    Route::get('/', [TransactionController::class, 'index'])->name('index');
+    Route::post('/', [TransactionController::class, 'store'])->name('store');
+    Route::post('{transaction}', [TransactionController ::class, 'update'])->name('update');
+
+    Route::delete('/{transaction}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
+
+});
+
 // Snap Payment 
 Route::post('/create-snap-token', [PaymentController::class, 'createTransaction']);
 
 
 
-Route::get('/dashboard', function () {
+Route::get('/', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

@@ -19,7 +19,10 @@ const Navbar = ({ user }) => {
 
                         <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                             <NavLink href={route('dashboard')} active={route().current('dashboard')}>Dashboard</NavLink>
-                            <NavLink href={route('fish.index')} active={route().current('fish.index')}>Product</NavLink>
+                            {/* <NavLink href={route('fish.index')} active={route().current('fish.index')}>Product</NavLink> */}
+                            <NavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</NavLink>
+                            <NavLink href={route('member.index')} active={route().current('member.index')}>Member</NavLink>
+                            <NavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</NavLink>
                         </div>
                     </div>
 
@@ -83,7 +86,10 @@ const Navbar = ({ user }) => {
             <div className={(showingNavigationDropdown ? 'block' : 'hidden') + ' sm:hidden'}>
                 <div className="pt-2 pb-3 space-y-1">
                     <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>Dashboard</ResponsiveNavLink>
-                    <ResponsiveNavLink href={route('fish.index')} active={route().current('fish.index')}>Product</ResponsiveNavLink>
+                    {/* <ResponsiveNavLink href={route('fish.index')} active={route().current('fish.index')}>Product</ResponsiveNavLink> */}
+                    <ResponsiveNavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</ResponsiveNavLink>
+                    <ResponsiveNavLink href={route('member.index')} active={route().current('member.index')}>Member</ResponsiveNavLink>
+                    <ResponsiveNavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</ResponsiveNavLink>
                 </div>
 
                 <div className="pt-4 pb-1 border-t border-gray-200">

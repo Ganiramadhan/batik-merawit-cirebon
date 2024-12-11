@@ -15,7 +15,6 @@ export default function Footer() {
                 </div>
             </div>
 
-            {/* Tampilkan hari di pojok kanan atas footer */}
             <div className="absolute top-0 right-0 mt-2 mr-4 text-gray-500 text-sm">
                 Happy {dayName}!
             </div>
