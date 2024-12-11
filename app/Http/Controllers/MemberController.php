@@ -50,7 +50,6 @@ class MemberController extends Controller
             'employees' => 'required|string|max:100', 
         ]);
     
-        // Create the member record
         $member = Member::create($validatedData);
     
         return response()->json($member);

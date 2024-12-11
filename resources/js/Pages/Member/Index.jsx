@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {  useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
@@ -8,7 +8,6 @@ import { FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, 
 export default function MemberData({ user, title, members }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [newMember, setNewMember] = useState({
@@ -38,7 +37,6 @@ export default function MemberData({ user, title, members }) {
             let response;
     
             if (isEditMode) {
-                // Mode edit: update member berdasarkan ID
                 response = await axios.post(`/member/${newMember.id}`, formData);
     
                 // Cek jika respons berhasil (status 200 atau 204)
@@ -96,8 +94,22 @@ export default function MemberData({ user, title, members }) {
     const filteredData = filteredMemberData.filter((members) =>
         members.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const [itemsPerPage, setItemsPerPage] = useState(5); 
 
-    
+    const handleItemsPerPageChange = (event) => {
+        setItemsPerPage(Number(event.target.value)); 
+        setCurrentPage(1);  
+    };
+
+    const handlePageChange = (page) => {
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages; 
+        setCurrentPage(page);
+    };
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
 
 
      // Handle edit
@@ -175,16 +187,6 @@ export default function MemberData({ user, title, members }) {
         console.log('Show Data')
     }
 
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const currentData = filteredData.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-    };
-
     return (
         <AuthenticatedLayout user={user} header={<h2 className="font-semibold text-xl text-gray-800">{title}</h2>}>
             <Head title={title} />
@@ -211,7 +213,7 @@ export default function MemberData({ user, title, members }) {
                                 setNewMember({ name: '', email: '', phone_number: '', address: '' });
                                 setIsModalOpen(true);
                             }}
-                            className="bg-blue-600 text-white py-3 px-6 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105"
+                            className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
                         >
                             <FiPlus className="mr-2" />
                             Tambah Member
@@ -248,87 +250,155 @@ export default function MemberData({ user, title, members }) {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex justify-center space-x-3">
+                                        <td className="px-4 py-2 text-center">
+                                        <div className="flex justify-center space-x-2">
+
+                                            {/* Tombol Edit */}
                                             <button
-                                                type="button"
-                                                className="bg-blue-500 text-white p-2 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-md relative group"
-                                                onClick={() => handleEditClick(member.id)}
+                                            type="button"
+                                            className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
+                                            onClick={() => handleEditClick(member.id)}
                                             >
-                                                <FiEdit className="text-xl" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    Edit
-                                                </span>
+                                            <FiEdit className="text-lg m-1" />
+                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Edit
+                                            </span>
                                             </button>
 
+                                            {/* Tombol Detail */}
                                             <button
-                                                className="bg-gray-500 text-white p-2 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-md relative group"
-                                                onClick={() => handleDetailClick(member.id)} 
+                                            className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
+                                            onClick={() => handleDetailClick(member.id)} 
                                             >
-                                                <FiInfo  className="text-xl" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    Detail
-                                                </span>
-                                            </button>
-                                            <button
-                                                className="bg-red-500 text-white p-2 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-md relative group"
-                                                onClick={() => handleDeleteClick(member.id)}
-                                            >
-                                                <FiTrash className="text-xl" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    Hapus
-                                                </span>
+                                            <FiInfo className="text-lg m-1" />
+                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Detail
+                                            </span>
                                             </button>
 
-                                            </div>
+                                            {/* Tombol Hapus */}
+                                            <button
+                                            className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
+                                            onClick={() => handleDeleteClick(member.id)}
+                                            >
+                                            <FiTrash className="text-lg m-1" />
+                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Hapus
+                                            </span>
+                                            </button>
+
+                                        </div>
                                         </td>
+
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 
-                    {/* Pagination */}
+
+                    {/* Pagination Controls */}
                     <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
                         <span className="text-sm text-gray-600">
                             Showing {currentData.length} of {filteredData.length} entries
                         </span>
-                        <div className="flex space-x-2">
-                            {/* Previous Button */}
+                            {/* Dropdown for selecting the number of entries per page */}
+                            <select
+                                value={itemsPerPage}
+                                onChange={handleItemsPerPageChange}
+                                className="px-2 py-1 text-sm rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 ml-2"
+                                >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        <div className="flex items-center space-x-2 ml-auto"> {/* Align items per page to the right */}
+
+                            {/* First Page Button */}
+                            <button
+                                onClick={() => handlePageChange(1)}
+                                disabled={currentPage === 1}
+                                className={`px-3 py-2 rounded-lg transition duration-200 ${
+                                    currentPage === 1
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                            >
+                                First
+                            </button>
+
+                            {/* Previous Page Button */}
                             <button
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+                                className={`px-3 py-2 rounded-lg transition duration-200 ${
+                                    currentPage === 1
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
                             >
-                                <FiChevronLeft />
+                                &#60;
                             </button>
 
-                            {/* Current Page */}
-                            <span className="px-4 py-2 text-sm font-semibold rounded-lg bg-blue-500 text-white">
-                                {currentPage}
-                            </span>
+                            {/* Page Number Buttons */}
+                            {Array.from({ length: totalPages }, (_, index) => {
+                                const page = index + 1;
+                                return (
+                                    <button
+                                        key={page}
+                                        onClick={() => handlePageChange(page)}
+                                        className={`px-3 py-2 rounded-lg transition duration-200 ${
+                                            currentPage === page
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            })}
 
-                            {/* Next Button */}
+                            {/* Next Page Button */}
                             <button
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+                                className={`px-3 py-2 rounded-lg transition duration-200 ${
+                                    currentPage === totalPages
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
                             >
-                                <FiChevronRight />
+                                &#62;
+                            </button>
+
+                            {/* Last Page Button */}
+                            <button
+                                onClick={() => handlePageChange(totalPages)}
+                                disabled={currentPage === totalPages}
+                                className={`px-3 py-2 rounded-lg transition duration-200 ${
+                                    currentPage === totalPages
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                            >
+                                Last
                             </button>
                         </div>
                     </div>
 
 
+                
                 </div>
-                {/* No Data Message */}
-                {filteredData.length === 0 && (
-                    <div className="text-center py-12 text-gray-600 text-lg font-semibold">
-                        No data found
-                    </div>
-                )}
+                    {/* No Data Message */}
+                    {filteredData.length === 0 && (
+                        <div className="text-center py-12 text-gray-600 text-lg font-semibold">
+                            No data found
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
 
 
 
