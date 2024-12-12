@@ -8,7 +8,7 @@ import { FiEdit, FiTrash, FiPlus, FiSearch, FiChevronLeft, FiChevronRight, FiCre
 export default function Transaction({ user, title, transactions, batiks }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5);  // Allow items per page to be dynamic
+    const [itemsPerPage, setItemsPerPage] = useState(5);  
     const [filteredData, setFilteredData] = useState(transactions);
     const [currentData, setCurrentData] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,7 +56,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
     };
 
 
-
     const handleSubmit = async (e) => {
         e.preventDefault();
     
@@ -73,7 +72,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
     
                 if (response.status === 200) {
                     const updatedTransaction = response.data.transaction;
-                    const batikDetails = batiks.find(b => b.id === parseInt(updatedTransaction.batik_id));
+                    const batikDetails = batiks.find(b => parseInt(b.id) === parseInt(updatedTransaction.batik_id));
     
                     setFilteredData((prevData) =>
                         prevData.map((item) =>
@@ -86,12 +85,11 @@ export default function Transaction({ user, title, transactions, batiks }) {
                     Swal.fire('Success', 'Transaction updated successfully.', 'success');
                 }
             } else {
-                // Tambah transaksi baru
                 response = await axios.post('/transaction', formData);
     
                 if (response.status === 200) {
                     const newTransactionData = response.data.transaction;
-                    const batikDetails = batiks.find(b => b.id === parseInt(newTransactionData.batik_id));
+                    const batikDetails = batiks.find(b => parseInt(b.id) === parseInt(newTransactionData.batik_id));
     
                     setFilteredData((prev) => [
                         ...prev,
@@ -114,8 +112,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
 
 
     const handleEditClick = (transaction) => {
-        const selectedBatik = batiks.find((batik) => batik.id === transaction.batik_id);
-        // console.log('Data:', selectedBatik)
+        const selectedBatik = batiks.find((batik) => parseInt(batik.id) === parseInt(transaction.batik_id));
     
         if (selectedBatik) {
             setIsEditMode(true);
@@ -131,10 +128,11 @@ export default function Transaction({ user, title, transactions, batiks }) {
             });
             setIsModalOpen(true);
         } else {
-            Swal.fire('Error', 'Batik not found for this transaction.', 'error');
+            Swal.fire('Error', 'Batik data not found. Please reload and try again.', 'error');
         }
     };
-    
+
+
     const handleDeleteClick = (id) => {
         Swal.fire({
             title: 'Are you sure?',
@@ -269,19 +267,25 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                             <td className="px-6 py-4 text-sm text-gray-800">{transaction.notes}</td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex justify-center space-x-3">
-                                                    <button
-                                                        type="button"
-                                                        className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm"
-                                                        onClick={() => handleEditClick(transaction)}
-                                                    >
-                                                        <FiEdit className="text-lg m-1" />
-                                                    </button>
-                                                    <button
-                                                        className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm"
-                                                        onClick={() => handleDeleteClick(transaction.id)}
-                                                    >
-                                                        <FiTrash className="text-lg m-1" />
-                                                    </button>
+                                                <button
+                                                    type="button"
+                                                    className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
+                                                    onClick={() => handleEditClick(transaction)}
+                                                >
+                                                    <FiEdit className="text-lg m-1" />
+                                                    <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                        Edit
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
+                                                    onClick={() => handleDeleteClick(transaction.id)}
+                                                >
+                                                    <FiTrash className="text-lg m-1" />
+                                                    <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                        Delete
+                                                    </span>
+                                                </button>
                                                 </div>
                                             </td>
                                         </tr>

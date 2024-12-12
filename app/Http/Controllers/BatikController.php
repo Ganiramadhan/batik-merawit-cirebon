@@ -54,34 +54,48 @@ class BatikController extends Controller
      * Store a newly created resource in storage.
      */
 
-
-    public function store(Request $request) {
-        $validatedData = $request->validate([
-            'code_batik' => 'required|unique:batiks|max:255',
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'member_id' => 'nullable|exists:members,id',
-            'motif_creator' => 'nullable|string|max:255',
-            'bricklayer_name' => 'nullable|string|max:255',
-            'production_year' => 'nullable|integer',
-            'materials' => 'nullable|string|max:255',
-        ]);
-
-        $qrCodeBase64 = QrCode::size(200)->generate($validatedData['code_batik']);
-
-        $validatedData['qr_code'] = $qrCodeBase64;
-
-        if ($request->hasFile('image')) {
-            $validatedData['image'] = $request->file('image')->store('images', 'public');
+        public function show($code_batik)
+        {
+            $batik = Batik::where('code_batik', $code_batik)->firstOrFail();
+        
+            return Inertia::render('Batik/QrCode', [
+                'batik' => $batik,
+            ]);
         }
 
-        $batik = Batik::create($validatedData);
-
-        return response()->json($batik);
-    }
+        public function store(Request $request)
+        {
+            $validatedData = $request->validate([
+                'code_batik' => 'required|unique:batiks|max:255',
+                'name' => 'required|string|max:255',
+                'price' => 'required|numeric',
+                'stock' => 'required|integer',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|max:2048',
+                'member_id' => 'nullable|exists:members,id',
+                'motif_creator' => 'nullable|string|max:255',
+                'bricklayer_name' => 'nullable|string|max:255',
+                'production_year' => 'nullable|integer',
+                'materials' => 'nullable|string|max:255',
+            ]);
+        
+            // Generate QR Code dengan URL lengkap
+            $url = url("/scan-batik/{$validatedData['code_batik']}");
+            $qrCodeBase64 = QrCode::size(200)->generate($url);
+        
+            $validatedData['qr_code'] = $qrCodeBase64;
+        
+            // Upload gambar jika ada
+            if ($request->hasFile('image')) {
+                $validatedData['image'] = $request->file('image')->store('images', 'public');
+            }
+        
+            // Simpan data batik ke database
+            $batik = Batik::create($validatedData);
+        
+            return response()->json($batik);
+        }
+        
 
     /**
      * Update the specified resource in storage.
@@ -129,7 +143,8 @@ class BatikController extends Controller
     public function detail($code)
     {
         $batik = Batik::where('code_batik', $code)->firstOrFail();
-        return Inertia::render('Batik/Detail', ['batik' => $batik]);
+        // print_r($batik);die();
+        return Inertia::render('Batik/QrCode', ['batik' => $batik]);
     }
 
     

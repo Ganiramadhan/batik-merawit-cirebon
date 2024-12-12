@@ -114,7 +114,7 @@ export default function MemberData({ user, title, members }) {
 
      // Handle edit
     const handleEditClick = (id) => {
-        const member = members.find((member) => member.id === id);
+        const member = filteredMemberData.find((member) => member.id === id);
         if (member) {
             setNewMember({
                 ...member,
@@ -405,12 +405,29 @@ export default function MemberData({ user, title, members }) {
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
                     <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-3xl transition-transform transform scale-95 overflow-y-auto max-h-[90vh]">
+                        
+                        {/* Main Header */}
+                        <div className="flex items-center justify-center mb-8 pt-2"> 
+                            <h1 className="text-2xl font-black text-gray-700">
+                                FORMULIR DATA ANGGOTA BATIK TULIS MERAWIT
+                            </h1>
+                        </div>
+
+                        {/* Close Icon */}
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+                        >
+                            <FiX className="text-2xl" />
+                        </button>
+
                         {/* Header Modal */}
                         <div className="flex items-center justify-between border-b pb-3 mb-4">
                             <div className="flex items-center space-x-2">
                                 <FiUser className="text-2xl text-blue-500" />
                                 <h3 className="text-xl font-semibold text-gray-800">
-                                    {isEditMode ? 'Edit Data Member' : 'Tambah Data Member'}
+                                    {isEditMode ? 'Edit Data Anggota' : 'Tambah Data Anggota'}
                                 </h3>
                             </div>
                             <button
@@ -418,7 +435,6 @@ export default function MemberData({ user, title, members }) {
                                 className="text-gray-400 hover:text-gray-600 transition"
                                 onClick={handleCancel}
                             >
-                                <FiX className="text-2xl" />
                             </button>
                         </div>
 

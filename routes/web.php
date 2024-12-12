@@ -1,16 +1,17 @@
 <?php
 
 use App\Http\Controllers\BatikController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\RajaOngkirController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\IsAdmin;
-use Inertia\Inertia;
 
 
 
@@ -32,9 +33,15 @@ Route::prefix('fish')->name('fish.')->group(function () {
     Route::delete('{fish}', [FishController::class, 'destroy'])->name('destroy');
 });
 
+
+// Snap Payment 
+Route::post('/create-snap-token', [PaymentController::class, 'createTransaction']);
+
+
+
+
 // New Batik 
 Route::prefix('batik')->name('batik.')->group(function () {
-    // Menampilkan daftar batik
     Route::get('/', [BatikController::class, 'index'])->name('index');
     Route::post('/', [BatikController::class, 'store'])->name('store');
     Route::post('{batik}', [BatikController::class, 'update'])->name('update');
@@ -43,8 +50,6 @@ Route::prefix('batik')->name('batik.')->group(function () {
 
     // Show Qr Scann 
     Route::get('/{code}', [BatikController::class, 'detail'])->name('batik.detail');
-
-
 
 });
 
@@ -64,21 +69,24 @@ Route::prefix('transaction')->name('transaction.')->group(function () {
     Route::get('/', [TransactionController::class, 'index'])->name('index');
     Route::post('/', [TransactionController::class, 'store'])->name('store');
     Route::post('{transaction}', [TransactionController ::class, 'update'])->name('update');
-
     Route::delete('/{transaction}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
 
 });
 
-// Snap Payment 
-Route::post('/create-snap-token', [PaymentController::class, 'createTransaction']);
+
+Route::get('/scan-batik/{code_batik}', [QrCodeController::class, 'show']);
+
+// Route::get('/', function () {
+//     return Inertia::render('Dashboard');
+// })->middleware(['auth', 'verified'])->name('dashboard');
 
 
 
-Route::get('/', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
-
+    
 // User Route
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
