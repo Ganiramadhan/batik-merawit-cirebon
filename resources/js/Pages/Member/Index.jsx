@@ -297,24 +297,24 @@ export default function MemberData({ user, title, members }) {
                     </div>
                 
 
-                    {/* Pagination Controls */}
+                  {/* Pagination Controls */}
                     <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
                         <span className="text-sm text-gray-600">
                             Showing {currentData.length} of {filteredData.length} entries
                         </span>
-                            {/* Dropdown for selecting the number of entries per page */}
-                            <select
-                                value={itemsPerPage}
-                                onChange={handleItemsPerPageChange}
-                                className="px-2 py-1 text-sm rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 ml-2"
-                                >
-                                <option value={5}>5</option>
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                            </select>
-                        <div className="flex items-center space-x-2 ml-auto"> {/* Align items per page to the right */}
+                        {/* Dropdown for selecting the number of entries per page */}
+                        <select
+                            value={itemsPerPage}
+                            onChange={handleItemsPerPageChange}
+                            className="px-2 py-1 text-sm rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 ml-2"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                        <div className="flex items-center space-x-2 ml-auto"> 
 
                             {/* First Page Button */}
                             <button
@@ -339,7 +339,7 @@ export default function MemberData({ user, title, members }) {
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                             >
-                                &#60;
+                                <FiChevronLeft /> 
                             </button>
 
                             {/* Page Number Buttons */}
@@ -370,7 +370,7 @@ export default function MemberData({ user, title, members }) {
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                             >
-                                &#62;
+                                <FiChevronRight />
                             </button>
 
                             {/* Last Page Button */}
@@ -387,8 +387,6 @@ export default function MemberData({ user, title, members }) {
                             </button>
                         </div>
                     </div>
-
-
                 
                 </div>
                     {/* No Data Message */}

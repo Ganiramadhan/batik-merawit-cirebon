@@ -11,9 +11,12 @@ export default function QrCode() {
         <>
             <Head title={`Detail Batik: ${batik.name}`} />
             <div className="bg-gray-100 min-h-screen py-0 sm:py-12 flex justify-center items-center">
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-3xl">
+                <div className="bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-3xl relative">
+                    {/* SVG Batik Background */}
+                    <div className="absolute inset-0 bg-[url('/path-to-your-batik-pattern.svg')] bg-cover bg-center opacity-20 z-0"></div>
+
                     {/* Bagian Header */}
-                    <div className="bg-white p-4 text-gray-800 text-center relative border-b">
+                    <div className="bg-white p-4 text-gray-800 text-center relative border-b z-10">
                         {/* Logo BTMC */}
                         <div className="absolute top-4 right-20 hidden md:block">
                             <img src={btmcLogo} alt="BTMC Logo" className="w-14 h-14" />
@@ -28,7 +31,7 @@ export default function QrCode() {
                     </div>
 
                     {/* Bagian Konten */}
-                    <div className="p-8 space-y-6">
+                    <div className="p-8 space-y-6 z-10">
                         {/* Bagian Deskripsi */}
                         <div className="border-b pb-4">
                             <h2 className="text-xl font-semibold text-gray-700 mb-3">Deskripsi</h2>

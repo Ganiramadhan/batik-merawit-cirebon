@@ -326,7 +326,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     First
                                 </button>
 
-                                {/* Previous page button */}
+                              {/* Previous Page Button */}
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1}
@@ -336,7 +336,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 >
-                                    &#60;
+                                    <FiChevronLeft /> 
                                 </button>
 
                                 {/* Page buttons */}
@@ -357,7 +357,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     );
                                 })}
 
-                                {/* Next page button */}
+                                 {/* Next Page Button */}
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages}
@@ -367,7 +367,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 >
-                                    &#62;
+                                    <FiChevronRight /> 
                                 </button>
 
                                 {/* Last page button */}
