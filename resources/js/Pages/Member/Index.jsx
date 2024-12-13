@@ -3,13 +3,19 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo   } from "react-icons/fi";
+import { 
+    FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo, 
+    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle 
+} from 'react-icons/fi';
+
 
 export default function MemberData({ user, title, members }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedMember, setSelectedMember] = useState(null);
     const [newMember, setNewMember] = useState({
         name: '',
         place_of_birth: '',
@@ -183,9 +189,16 @@ export default function MemberData({ user, title, members }) {
         });
     };
 
-    const handleDetailClick = () => {
-        console.log('Show Data')
-    }
+    const handleDetailClick = (id) => {
+        const memberData = filteredData.find((member) => member.id === id);
+        if (memberData) {
+          setSelectedMember(memberData);
+          setIsDetailModalOpen(true);
+        } else {
+          console.log('Data tidak ditemukan');
+        }
+      };
+      
 
     return (
         <AuthenticatedLayout user={user} header={<h2 className="font-semibold text-xl text-gray-800">{title}</h2>}>
@@ -268,14 +281,13 @@ export default function MemberData({ user, title, members }) {
                                             {/* Tombol Detail */}
                                             <button
                                             className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
-                                            onClick={() => handleDetailClick(member.id)} 
+                                            onClick={() => handleDetailClick(member.id)}
                                             >
                                             <FiInfo className="text-lg m-1" />
                                             <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                 Detail
                                             </span>
                                             </button>
-
                                             {/* Tombol Hapus */}
                                             <button
                                             className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
@@ -397,6 +409,91 @@ export default function MemberData({ user, title, members }) {
                     )}
                 </div>
             </div>
+
+
+
+
+            <div
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-all ${
+                    isDetailModalOpen ? 'opacity-100 visible z-50' : 'opacity-0 invisible z-0'
+                }`}
+            >
+                <div className="bg-white p-6 rounded-lg shadow-lg w-4/5 max-w-lg transition-transform transform scale-100 overflow-y-auto max-h-[90vh]">
+                    {/* Header */}
+                    <div className="border-b border-gray-200 mb-4 pb-3 flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-700 text-center flex-grow">Detail Anggota</h2>
+                    </div>
+
+                    {/* Member Detail */}
+                    {selectedMember ? (
+                        <div className="space-y-3 text-gray-700 text-sm">
+                            <div className="flex items-center space-x-3">
+                                <FiUser className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Nama Anggota MPIG-BTMC:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.name}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiHome className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Nama Merek (Toko):</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.store_name}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiMail className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Email:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.email}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiPhone className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Nomor HP:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.phone_number}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiMapPin className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Tempat Lahir:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.place_of_birth}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiUsers className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Jumlah Pekerja:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.employees}</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <FiMapPin className="text-gray-700 text-lg" />
+                                <p>
+                                    <strong>Alamat:</strong>{' '}
+                                    <span className="text-gray-900">{selectedMember.address}</span>
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-sm text-center">Data tidak ditemukan</p>
+                    )}
+
+                    {/* Footer dengan Tombol Tutup */}
+                    <div className="mt-6 flex justify-end space-x-4">
+                        <button
+                            onClick={() => setIsDetailModalOpen(false)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-shadow shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex items-center space-x-2"
+                        >
+                            <FiXCircle className="text-sm" />
+                            <span>Close</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
 
 
 
@@ -546,7 +643,7 @@ export default function MemberData({ user, title, members }) {
                                     className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
                                     onClick={handleCancel}
                                 >
-                                    <FiX className="mr-2" />
+                                    <FiXCircle className="mr-2" />
                                     Cancel
                                 </button>
 

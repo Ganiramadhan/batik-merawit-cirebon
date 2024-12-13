@@ -26,6 +26,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         bricklayer_name: '',
         production_year: '',
         materials: '',
+        color_materials: '',
         coordinate: '',
         member_id: '',
 
@@ -133,32 +134,25 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                 });
             } else {
                 response = await axios.post('/batik', formData);
-    
-                if (response?.data) {
-                    setFilteredBatikData((prevData) => {
-                        const newData = [
-                            ...prevData,
-                            {
-                                ...response.data,
-                                price: cleanedPrice,
-                                image: response?.data?.image_url || '',
-                            },
-                        ];
-                        return newData;
-                    });
-    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: 'Data batik berhasil ditambahkan.',
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Terjadi Kesalahan',
-                        text: 'Server tidak mengembalikan data yang diharapkan.',
-                    });
-                }
+                setFilteredBatikData((prevData) => {
+                    const newData = [
+                        ...prevData,
+                        {
+                            ...response.data,
+                            price: cleanedPrice,
+                            image: response.data.image || '',   
+                            qr_code: response.data.qr_code || {}, 
+                        },
+                    ];
+                    return newData;
+                });
+            
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Data batik berhasil ditambahkan.',
+                });
+                
             }
     
             setIsModalOpen(false);
@@ -194,7 +188,10 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                 id: selectedBatik.id,
                 code_batik: selectedBatik.code_batik || '',
                 name: selectedBatik.name || '',
-                price: selectedBatik.price || '',
+                price: selectedBatik.price || 0, 
+                formattedPrice: selectedBatik.price
+                    ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(selectedBatik.price)
+                    : '', 
                 stock: selectedBatik.stock || '',
                 description: selectedBatik.description || '',
                 image: '', 
@@ -202,6 +199,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                 bricklayer_name: selectedBatik.bricklayer_name || '',
                 production_year: selectedBatik.production_year || '',
                 materials: selectedBatik.materials || '',
+                color_materials: selectedBatik.color_materials || '',
                 coordinate: selectedBatik.coordinate || '',
                 member_id: selectedBatik.member_id || '', 
             });
@@ -209,7 +207,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             const selectedMember = members.find((member) => 
                 parseInt(member.id) === parseInt(selectedBatik.member_id)
             );
-        
+    
             if (selectedMember) {
                 setNewBatik((prev) => ({
                     ...prev,
@@ -283,6 +281,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             bricklayer_name: "",
             production_year: "",
             materials: "",
+            color_materials: "",
             coordinate: "",
             description: "",
             image: null,
@@ -308,6 +307,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             bricklayer_name: '',
             production_year: '',
             materials: '',
+            color_materials: '',
             coordinate: '',
             member_id: '',
 
@@ -776,25 +776,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                 </div>
 
                                 <div>
-                                    <label htmlFor="materials" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Bahan Baku Kain
-                                    </label>
-                                    <select
-                                        id="materials"
-                                        name="materials"
-                                        value={newBatik.materials || ""}
-                                        onChange={handleInputChange}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    >
-                                        <option value="">Pilih Bahan Baku Kain</option>
-                                        <option value="Kain Katun Primisima">Kain Katun Primisima</option>
-                                        <option value="Kain Katun Kereta Kencana Sintetis">Kain Katun Kereta Kencana Sintetis</option>
-                                        <option value="Pewarna Alami">Pewarna Alami</option>
-                                    </select>
-                                </div>
-
-                                <div>
                                     <label htmlFor="batik_quallity" className="block text-sm font-medium text-gray-700 mb-2">
                                         Kualitas Batik
                                     </label>
@@ -809,6 +790,41 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         required
                                     />
                                 </div>
+                                <div>
+                                    <label htmlFor="materials" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Bahan Baku Kain
+                                    </label>
+                                    <select
+                                        id="materials"
+                                        name="materials"
+                                        value={newBatik.materials || ""}
+                                        onChange={handleInputChange}
+                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="">Pilih Bahan Baku Kain</option>
+                                        <option value="Kain Katun Primisima">Kain Katun Primisima</option>
+                                        <option value="Kain Katun Kereta Kencana Sintetis">Kain Katun Kereta Kencana Sintetis</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="color_materials" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Bahan Pewarna
+                                    </label>
+                                    <select
+                                        id="color_materials"
+                                        name="color_materials"
+                                        value={newBatik.color_materials || ""}
+                                        onChange={handleInputChange}
+                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="">Pilih Bahan Pewarna</option>
+                                        <option value="Sintetis">Sintetis</option>
+                                        <option value="Pewarna Alami">Pewarna Alami</option>
+                                    </select>
+                                </div>
+
                                 <textarea
                                     id="description"
                                     name="description"

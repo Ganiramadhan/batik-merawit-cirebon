@@ -3,7 +3,22 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { FiEdit, FiTrash, FiPlus, FiSearch, FiChevronLeft, FiChevronRight, FiCreditCard, FiX, FiSave } from "react-icons/fi";
+import { 
+    FiEdit, 
+    FiTrash, 
+    FiPlus, 
+    FiSearch, 
+    FiChevronLeft, 
+    FiChevronRight, 
+    FiCreditCard, 
+    FiX, 
+    FiSave, 
+    FiXCircle, 
+    FiInfo,           
+    
+} from "react-icons/fi";
+import { FaPaintBrush } from "react-icons/fa";
+
 
 export default function Transaction({ user, title, transactions, batiks }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -11,8 +26,10 @@ export default function Transaction({ user, title, transactions, batiks }) {
     const [itemsPerPage, setItemsPerPage] = useState(5);  
     const [filteredData, setFilteredData] = useState(transactions);
     const [currentData, setCurrentData] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [newTransaction, setNewTransaction] = useState({
         id: '',
         batik_id: '',
@@ -55,7 +72,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
         setCurrentPage(1);  
     };
 
-
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
     
@@ -111,6 +128,29 @@ export default function Transaction({ user, title, transactions, batiks }) {
     
 
 
+    const handleDetailClick = (id) => {
+        const transactionData = filteredData.find((transaction) => transaction.id === id);
+        
+        if (transactionData) {
+            const batikInfo = batiks.find((b) => parseInt(b.id) === parseInt(transactionData.batik_id));
+    
+            if (!batikInfo) {
+                console.warn('Batik details not found for transaction:', transactionData);
+            }
+    
+            setSelectedTransaction({
+                ...transactionData,
+                batik: batikInfo || { code: 'N/A', name: 'Unknown', price: 0 },
+            });
+    
+            setIsDetailModalOpen(true);
+        } else {
+            console.log('Data tidak ditemukan');
+        }
+    };
+    
+
+
     const handleEditClick = (transaction) => {
         const selectedBatik = batiks.find((batik) => parseInt(batik.id) === parseInt(transaction.batik_id));
     
@@ -158,7 +198,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
     
 
 
-    
 
     const handleCancel = () => {
         setIsModalOpen(false);
@@ -266,27 +305,43 @@ export default function Transaction({ user, title, transactions, batiks }) {
 
                                             <td className="px-6 py-4 text-sm text-gray-800">{transaction.notes}</td>
                                             <td className="px-6 py-4 text-center">
-                                                <div className="flex justify-center space-x-3">
-                                                <button
-                                                    type="button"
-                                                    className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
-                                                    onClick={() => handleEditClick(transaction)}
-                                                >
-                                                    <FiEdit className="text-lg m-1" />
-                                                    <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                        Edit
-                                                    </span>
-                                                </button>
-                                                <button
-                                                    className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
-                                                    onClick={() => handleDeleteClick(transaction.id)}
-                                                >
-                                                    <FiTrash className="text-lg m-1" />
-                                                    <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                        Delete
-                                                    </span>
-                                                </button>
-                                                </div>
+                                            <div className="flex justify-center space-x-3">
+                                            {/* Edit Button */}
+                                            <button
+                                                type="button"
+                                                className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
+                                                onClick={() => handleEditClick(transaction)}
+                                            >
+                                                <FiEdit className="text-lg m-1" />
+                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Edit
+                                                </span>
+                                            </button>
+
+                                            {/* Tombol Detail */}
+                                            <button
+                                            className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
+                                            onClick={() => handleDetailClick(transaction.id)}
+                                            >
+                                            <FiInfo className="text-lg m-1" />
+                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Detail
+                                            </span>
+                                            </button>
+
+                                            {/* Delete Button */}
+                                            <button
+                                                className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
+                                                onClick={() => handleDeleteClick(transaction.id)}
+                                            >
+                                                <FiTrash className="text-lg m-1" />
+                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Delete
+                                                </span>
+                                            </button>
+
+                                            </div>
+
                                             </td>
                                         </tr>
                                     ))}
@@ -386,8 +441,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
                         </div>
                     </div>
 
-
-
                     {/* No Data Message */}
                     {filteredData.length === 0 && (
                         <div className="text-center py-12 text-gray-600 text-lg font-semibold">
@@ -396,6 +449,128 @@ export default function Transaction({ user, title, transactions, batiks }) {
                     )}
                 </div>
             </div>
+
+
+
+            {isDetailModalOpen && selectedTransaction && (
+                <div
+                    className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-all ${
+                    isDetailModalOpen ? 'opacity-100 visible z-50' : 'opacity-0 invisible z-0'
+                    }`}
+                >
+                    {/* Modal Kontainer */}
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-4/5 max-w-lg transition-transform transform scale-100 overflow-y-auto max-h-[90vh]">
+                    
+                    {/* Header dengan ikon */}
+                    <div className="border-b border-gray-200 mb-4 pb-3 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                        <FiInfo className="text-black h-6 w-6" />
+                        <h2 className="text-2xl font-semibold text-gray-800">Detail Transaksi</h2>
+                        </div>
+                    </div>
+
+                    {/* Detail Transaksi sebagai tabel */}
+                    <div className="overflow-auto max-h-[60vh]">
+                        <table className="min-w-full bg-white border border-gray-200 table-auto">
+                        <thead>
+                            <tr className="bg-gray-100">
+                            <th className="py-2 px-4 border border-gray-200 text-left">Detail</th>
+                            <th className="py-2 px-4 border border-gray-200 text-left">Informasi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm text-gray-700">
+                            {/* Tanggal */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Tanggal</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {new Date(selectedTransaction.transaction_date).toLocaleDateString('id-ID')}
+                            </td>
+                            </tr>
+
+                            {/* Kode Batik */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Kode Batik</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {selectedTransaction.batik?.code_batik || '-'}
+                            </td>
+                            </tr>
+
+                            {/* Nama Motif Batik */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Nama Motif</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {selectedTransaction.batik?.name || '-'}
+                            </td>
+                            </tr>
+
+                            {/* Harga Satuan */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Harga Satuan</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                                selectedTransaction.batik?.price || 0
+                                )}
+                            </td>
+                            </tr>
+
+                            {/* Jumlah */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Jumlah</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {selectedTransaction.quantity}
+                            </td>
+                            </tr>
+
+                            {/* Total Harga */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Total Harga</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                                selectedTransaction.total_price
+                                )}
+                            </td>
+                            </tr>
+
+                            {/* Catatan */}
+                            <tr>
+                            <td className="py-2 px-4 border border-gray-200">
+                                <strong>Catatan</strong>
+                            </td>
+                            <td className="py-2 px-4 border border-gray-200">
+                                {selectedTransaction.notes || '-'}
+                            </td>
+                            </tr>
+                        </tbody>
+                        </table>
+                    </div>
+
+                    {/* Tombol Tutup */}
+                    <div className="mt-4 flex justify-end space-x-3">
+                        <button
+                            onClick={() => setIsDetailModalOpen(false)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-shadow shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex items-center space-x-2"
+                        >
+                            <FiXCircle className="text-sm" />
+                            <span>Close</span>
+                        </button>
+
+                    </div>
+                    </div>
+                </div>
+                )}
+
 
 
             {isModalOpen && (
@@ -535,7 +710,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
                                     onClick={handleCancel}
                                 >
-                                    <FiX className="mr-2" />
+                                    <FiXCircle className="mr-2" />
                                     Cancel
                                 </button>
 

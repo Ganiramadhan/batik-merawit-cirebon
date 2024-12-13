@@ -77,9 +77,10 @@ class BatikController extends Controller
                 'bricklayer_name' => 'nullable|string|max:255',
                 'production_year' => 'nullable|integer',
                 'materials' => 'nullable|string|max:255',
+                'color_materials' => 'nullable|string|max:255',
             ]);
         
-            // Generate QR Code in SVG format
+         // Generate QR Code in SVG format
             $url = url("/scan-batik/{$validatedData['code_batik']}");
             $qrCodeSvg = QrCode::format('svg')->size(200)->generate($url);
         
@@ -96,13 +97,8 @@ class BatikController extends Controller
             // Save the batik data to the database
             $batik = Batik::create($validatedData);
         
-            // Return the data including the base64-encoded QR code
-            return response()->json([
-                'message' => 'Data batik berhasil ditambahkan.',
-                'batik' => $batik,
-            ]);
+            return response()->json($batik);
         }
-        
         
 
     /**
@@ -124,28 +120,21 @@ class BatikController extends Controller
                 'bricklayer_name' => 'nullable|string|max:255',
                 'production_year' => 'nullable|integer',
                 'materials' => 'nullable|string|max:255',
+                'color_materials' => 'nullable|string|max:255',
             ]);
-        
             $batik = Batik::findOrFail($id);
         
-            // Perbarui gambar jika ada
             if ($request->hasFile('image')) {
                 if ($batik->image && Storage::disk('public')->exists($batik->image)) {
                     Storage::disk('public')->delete($batik->image);
                 }
+                // Simpan gambar baru
                 $validated['image'] = $request->file('image')->store('images', 'public');
             } else {
                 $validated['image'] = $batik->image;
             }
         
-            // Generate QR Code baru berdasarkan `code_batik`
-            $url = url("/scan-batik/{$validated['code_batik']}");
-            $qrCodeSvg = QrCode::format('svg')->size(200)->generate($url);
-        
-            // Encode QR Code ke dalam format Base64
-            $validated['qr_code'] = base64_encode($qrCodeSvg);
-        
-            // Perbarui data di database
+            unset($validated['qr_code']); 
             $batik->update($validated);
         
             return response()->json([

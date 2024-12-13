@@ -56,7 +56,7 @@ export default function QrCode() {
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiTag className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Kode:</span>
+                                    <span className="text-gray-700 font-medium">Kode Batik:</span>
                                     <span className="text-gray-900 font-semibold">{batik.code_batik}</span>
                                 </div>
                             </div>
@@ -72,14 +72,14 @@ export default function QrCode() {
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiUser className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">AnggotaMPIG-BTMC:</span>
+                                    <span className="text-gray-700 font-medium">Anggota MPIG-BTMC:</span>
                                     <span className="text-gray-900 font-semibold">{batik.member?.name || "Tidak diketahui"}</span>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiShoppingBag className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Nama Merek(Toko):</span>
+                                    <span className="text-gray-700 font-medium">Nama Merek (Toko):</span>
                                     <span className="text-gray-900 font-semibold">{batik.member?.store_name || "Tidak diketahui"}</span>
                                 </div>
                             </div>
@@ -107,7 +107,7 @@ export default function QrCode() {
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiLayers className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Material:</span>
+                                    <span className="text-gray-700 font-medium">Bahan:</span>
                                     <span className="text-gray-900 font-semibold">{batik.materials || "Tidak disebutkan"}</span>
                                 </div>
                             </div>
