@@ -17,7 +17,6 @@ import {
     FiInfo,           
     
 } from "react-icons/fi";
-import { FaPaintBrush } from "react-icons/fa";
 
 
 export default function Transaction({ user, title, transactions, batiks }) {
@@ -33,12 +32,13 @@ export default function Transaction({ user, title, transactions, batiks }) {
     const [newTransaction, setNewTransaction] = useState({
         id: '',
         batik_id: '',
-        quantity: '',
-        total_price: '',
+        price:'',
         transaction_date: '',
         notes: ''
     });
 
+
+    // Search Data 
     useEffect(() => {
         const filtered = transactions.filter(transaction => {
             const batik = batiks.find(b => b.id === transaction.batik_id);
@@ -53,7 +53,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
         setCurrentPage(1);
     }, [searchQuery, transactions, batiks]);
 
-    // Update currentData based on pagination
+
     useEffect(() => {
         const indexOfLast = currentPage * itemsPerPage;
         const indexOfFirst = indexOfLast - itemsPerPage;
@@ -99,7 +99,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                         )
                     );
     
-                    Swal.fire('Success', 'Transaction updated successfully.', 'success');
+                    Swal.fire('Success', response.data.message, 'success');
                 }
             } else {
                 response = await axios.post('/transaction', formData);
@@ -113,7 +113,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                         { ...newTransactionData, batik: batikDetails },
                     ]);
     
-                    Swal.fire('Success', 'Transaction added successfully.', 'success');
+                    Swal.fire('Success', response.data.message, 'success');
                 }
             }
     
@@ -153,14 +153,11 @@ export default function Transaction({ user, title, transactions, batiks }) {
 
     const handleEditClick = (transaction) => {
         const selectedBatik = batiks.find((batik) => parseInt(batik.id) === parseInt(transaction.batik_id));
-    
         if (selectedBatik) {
             setIsEditMode(true);
             setNewTransaction({
                 id: transaction.id,
                 batik_id: transaction.batik_id,
-                quantity: transaction.quantity,
-                total_price: transaction.total_price,
                 transaction_date: transaction.transaction_date,
                 notes: transaction.notes,
                 name: selectedBatik.name,
@@ -180,21 +177,28 @@ export default function Transaction({ user, title, transactions, batiks }) {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`/transaction/${id}`);
-                    
+                    // Panggil API untuk menghapus data
+                    const response = await axios.delete(`/transaction/${id}`);
+    
+                    // Hapus data dari state setelah berhasil
                     setFilteredData(filteredData.filter(transaction => transaction.id !== id));
-                    
-                    Swal.fire('Deleted!', 'The transaction has been successfully deleted.', 'success');
+    
+                    Swal.fire('Deleted!', response.data.message, 'success');
                 } catch (error) {
-                    Swal.fire('Error!', 'An error occurred while deleting the transaction.', 'error');
+                    Swal.fire(
+                        'Error!',
+                        error.response?.data?.message || 'An error occurred while deleting the transaction.',
+                        'error'
+                    );
                 }
             }
         });
     };
+    
     
 
 
@@ -209,8 +213,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
         setNewTransaction({
             id: '',
             batik_id: '',
-            quantity: '',
-            total_price: '',
             transaction_date: '',
             notes: ''
         });
@@ -233,32 +235,41 @@ export default function Transaction({ user, title, transactions, batiks }) {
             <div className="py-6 bg-gray-50">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
-                        <div className="relative w-full sm:w-1/3">
+                        {/* Search Input */}
+                        <div className="relative w-full sm:w-1/4">
                             <input
                                 type="text"
-                                placeholder="Search transactions..."
+                                placeholder="Cari transaksi..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="p-3 pl-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
+                                className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
                             />
                             <div className="absolute top-0 left-0 flex items-center h-full pl-3">
                                 <FiSearch className="text-gray-400" />
                             </div>
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
+                                >
+                                    <FiXCircle className="text-lg" />
+                                </button>
+                            )}
                         </div>
+
+                        {/* Add Transaction Button */}
                         <button
                             onClick={() => {
                                 setIsEditMode(false);
                                 setNewTransaction({
                                     batik_id: '',
-                                    quantity: '',
-                                    total_price: '',
                                     transaction_date: '',
                                     notes: ''
                                 });
                                 setIsModalOpen(true);
                             }}
                             className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
-                            >
+                        >
                             <FiPlus className="mr-2" />
                             Tambah Transaksi
                         </button>
@@ -273,79 +284,88 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                         <th className="px-6 py-4 text-sm font-semibold text-left">#</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-left">Kode Batik</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-left">Nama Batik</th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-left">Jumlah</th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-left">Total</th>
+                                        <th className="px-6 py-4 text-sm font-semibold text-left">Harga</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-left">Tanggal Transaksi</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-left">Catatan</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentData.map((transaction, index) => (
-                                        <tr key={transaction.id} className="border-b hover:bg-gray-100 transition-all">
-                                            <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                                                {String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">
-                                                {transaction.batik.code_batik || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">
-                                                {transaction.batik.name || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">{transaction.quantity}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">
-                                                {new Intl.NumberFormat('id-ID', {
-                                                    style: 'currency',
-                                                    currency: 'IDR',
-                                                }).format(transaction.total_price)}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">
-                                                {new Date(transaction.transaction_date).getDate().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getMonth().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getFullYear()}
-                                            </td>
+                                    {currentData.length > 0 ? (
+                                        currentData.map((transaction, index) => (
+                                            <tr key={transaction.id} className="border-b hover:bg-gray-100 transition-all">
+                                                <td className="px-6 py-4 text-sm text-gray-800 font-medium">
+                                                    {String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-800">
+                                                    {transaction.batik.code_batik || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-800">
+                                                    {transaction.batik.name || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-800">
+                                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                                                    transaction.batik?.price || 0
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-800">
+                                                    {new Date(transaction.transaction_date).getDate().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getMonth().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getFullYear()}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-800">
+                                                    <div className="relative">
+                                                        <span className="truncate max-w-xs" title={transaction.notes}>
+                                                            {transaction.notes.length > 50 ? `${transaction.notes.slice(0, 50)}...` : transaction.notes}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex justify-center space-x-3">
+                                                        {/* Edit Button */}
+                                                        <button
+                                                            type="button"
+                                                            className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
+                                                            onClick={() => handleEditClick(transaction)}
+                                                        >
+                                                            <FiEdit className="text-lg m-1" />
+                                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                                Edit
+                                                            </span>
+                                                        </button>
 
-                                            <td className="px-6 py-4 text-sm text-gray-800">{transaction.notes}</td>
-                                            <td className="px-6 py-4 text-center">
-                                            <div className="flex justify-center space-x-3">
-                                            {/* Edit Button */}
-                                            <button
-                                                type="button"
-                                                className="bg-blue-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm relative group"
-                                                onClick={() => handleEditClick(transaction)}
-                                            >
-                                                <FiEdit className="text-lg m-1" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                Edit
-                                                </span>
-                                            </button>
+                                                        {/* Detail Button */}
+                                                        <button
+                                                            className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
+                                                            onClick={() => handleDetailClick(transaction.id)}
+                                                        >
+                                                            <FiInfo className="text-lg m-1" />
+                                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                                Detail
+                                                            </span>
+                                                        </button>
 
-                                            {/* Tombol Detail */}
-                                            <button
-                                            className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
-                                            onClick={() => handleDetailClick(transaction.id)}
-                                            >
-                                            <FiInfo className="text-lg m-1" />
-                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                Detail
-                                            </span>
-                                            </button>
-
-                                            {/* Delete Button */}
-                                            <button
-                                                className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
-                                                onClick={() => handleDeleteClick(transaction.id)}
-                                            >
-                                                <FiTrash className="text-lg m-1" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                Delete
-                                                </span>
-                                            </button>
-
-                                            </div>
-
+                                                        {/* Delete Button */}
+                                                        <button
+                                                            className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
+                                                            onClick={() => handleDeleteClick(transaction.id)}
+                                                        >
+                                                            <FiTrash className="text-lg m-1" />
+                                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                                Delete
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={7} className="text-center py-4 text-gray-500">
+                                                Tidak ada data transaksi.
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
+
                             </table>
                         </div>
 
@@ -353,7 +373,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
                             <span className="text-sm text-gray-600">
                                 Showing {currentData.length} of {filteredData.length} entries
                             </span>
-                             {/* Dropdown for items per page */}
                             <select
                                     value={itemsPerPage}
                                     onChange={handleItemsPerPageChange}
@@ -366,7 +385,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     <option value={100}>100</option>
                                 </select>
 
-                            <div className="flex items-center space-x-2 ml-auto"> {/* Align items per page to the right */}
+                            <div className="flex items-center space-x-2 ml-auto"> 
 
                                 {/* First page button */}
                                 <button
@@ -440,16 +459,8 @@ export default function Transaction({ user, title, transactions, batiks }) {
                             </div>
                         </div>
                     </div>
-
-                    {/* No Data Message */}
-                    {filteredData.length === 0 && (
-                        <div className="text-center py-12 text-gray-600 text-lg font-semibold">
-                            No data found
-                        </div>
-                    )}
                 </div>
             </div>
-
 
 
             {isDetailModalOpen && selectedTransaction && (
@@ -474,81 +485,60 @@ export default function Transaction({ user, title, transactions, batiks }) {
                         <table className="min-w-full bg-white border border-gray-200 table-auto">
                         <thead>
                             <tr className="bg-gray-100">
-                            <th className="py-2 px-4 border border-gray-200 text-left">Detail</th>
-                            <th className="py-2 px-4 border border-gray-200 text-left">Informasi</th>
+                            <th className="py-2 px-4 border border-gray-200 text-left w-1/3">Detail</th>
+                            <th className="py-2 px-4 border border-gray-200 text-left w-2/3">Informasi</th>
                             </tr>
                         </thead>
                         <tbody className="text-sm text-gray-700">
                             {/* Tanggal */}
                             <tr>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-1/3">
                                 <strong>Tanggal</strong>
                             </td>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {new Date(selectedTransaction.transaction_date).toLocaleDateString('id-ID')}
                             </td>
                             </tr>
 
                             {/* Kode Batik */}
                             <tr>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-1/3">
                                 <strong>Kode Batik</strong>
                             </td>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {selectedTransaction.batik?.code_batik || '-'}
                             </td>
                             </tr>
 
                             {/* Nama Motif Batik */}
                             <tr>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-1/3">
                                 <strong>Nama Motif</strong>
                             </td>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {selectedTransaction.batik?.name || '-'}
                             </td>
                             </tr>
 
                             {/* Harga Satuan */}
                             <tr>
-                            <td className="py-2 px-4 border border-gray-200">
-                                <strong>Harga Satuan</strong>
+                            <td className="py-2 px-4 border border-gray-200 w-1/3">
+                                <strong>Harga</strong>
                             </td>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
                                 selectedTransaction.batik?.price || 0
                                 )}
                             </td>
                             </tr>
 
-                            {/* Jumlah */}
-                            <tr>
-                            <td className="py-2 px-4 border border-gray-200">
-                                <strong>Jumlah</strong>
-                            </td>
-                            <td className="py-2 px-4 border border-gray-200">
-                                {selectedTransaction.quantity}
-                            </td>
-                            </tr>
 
-                            {/* Total Harga */}
+                           {/* Catatan */}
                             <tr>
-                            <td className="py-2 px-4 border border-gray-200">
-                                <strong>Total Harga</strong>
-                            </td>
-                            <td className="py-2 px-4 border border-gray-200">
-                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
-                                selectedTransaction.total_price
-                                )}
-                            </td>
-                            </tr>
-
-                            {/* Catatan */}
-                            <tr>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-1/3">
                                 <strong>Catatan</strong>
                             </td>
-                            <td className="py-2 px-4 border border-gray-200">
+                            <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {selectedTransaction.notes || '-'}
                             </td>
                             </tr>
@@ -569,7 +559,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                     </div>
                     </div>
                 </div>
-                )}
+            )}
 
 
 
@@ -608,8 +598,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                                 batik_id: e.target.value,
                                                 price: selectedBatik ? selectedBatik.price : '',
                                                 name: selectedBatik ? selectedBatik.name : '',
-                                                total_price: '', // Reset total price
-                                                quantity: '', // Reset quantity
                                             });
                                         }}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
@@ -635,45 +623,12 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     />
                                 </div>
 
-                                {/* Harga Satuan */}
+                                {/* Harga */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga Satuan</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
                                     <input
                                         type="text"
                                         value={newTransaction.price ? formatRupiah(newTransaction.price) : ''}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        readOnly
-                                    />
-                                </div>
-
-                               {/* Jumlah */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
-                                    <input
-                                        type="number"
-                                        min="0" 
-                                        value={newTransaction.quantity || ''}
-                                        onChange={(e) => {
-                                            let quantity = parseInt(e.target.value) || 0;
-                                            if (quantity < 0) quantity = 0;
-                                            const totalPrice = (newTransaction.price || 0) * quantity;
-                                            setNewTransaction({
-                                                ...newTransaction,
-                                                quantity,
-                                                total_price: totalPrice,
-                                            });
-                                        }}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Total Harga */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Harga</label>
-                                    <input
-                                        type="text"
-                                        value={newTransaction.total_price ? formatRupiah(newTransaction.total_price) : ''}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
                                         readOnly
                                     />
@@ -736,8 +691,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
                     </div>
                 </div>
             )}
-
-
 
 
 

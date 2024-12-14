@@ -93,7 +93,7 @@ export default function QrCode() {
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiTool className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Nama Tukang:</span>
+                                    <span className="text-gray-700 font-medium">Nama Penembok:</span>
                                     <span className="text-gray-900 font-semibold">{batik.bricklayer_name || "Tidak diketahui"}</span>
                                 </div>
                             </div>

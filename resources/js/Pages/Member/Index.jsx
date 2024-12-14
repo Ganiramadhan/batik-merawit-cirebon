@@ -16,6 +16,9 @@ export default function MemberData({ user, title, members }) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
+    const [itemsPerPage, setItemsPerPage] = useState(5); 
+    const [imagePreview, setImagePreview] = useState(null);
+    const [imageName, setImageName] = useState('');
     const [newMember, setNewMember] = useState({
         name: '',
         place_of_birth: '',
@@ -24,15 +27,56 @@ export default function MemberData({ user, title, members }) {
         store_name: '',
         email: '',
         phone_number: '',
-        address: ''
+        address: '',
+        image:null,
     });
     
     const [filteredMemberData, setFilteredMemberData] = useState(members);
 
-
+    const handleImageChange = (e) => {
+        const file = e.target.files[0]; 
+        if (file) {
+            setImagePreview(URL.createObjectURL(file));
+            setImageName(file.name); 
+            setNewMember((prevState) => {
+                const updatedState = {
+                    ...prevState,
+                    image: file,       
+                };
+                return updatedState;
+            });
+        }
+    };
     
+    
+    const handleEditClick = (id) => {
+        const member = filteredMemberData.find((member) => member.id === id);
+        if (member) {
+            // Set data member dan pastikan untuk menyertakan imagePreview jika ada gambar yang sudah ada
+            setNewMember({
+                ...member,
+                gender: member.gender || '',
+                imagePreview: member.image || '',  // Menggunakan URL gambar dari server jika ada
+            });
+            setImagePreview(member.image || ''); // Menyimpan URL gambar yang ada di server jika tersedia
+            setIsEditMode(true);
+            setIsModalOpen(true);
+        }
+    };
+    
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+            if (!isEditMode && !newMember.image) {
+                Swal.fire({
+                        icon: 'warning',
+                        title: 'Validasi',
+                        text: 'Gambar tidak boleh kosong.',
+                    });
+                    return;
+                }
     
         const formData = new FormData();
         for (const key in newMember) {
@@ -47,44 +91,49 @@ export default function MemberData({ user, title, members }) {
     
                 // Cek jika respons berhasil (status 200 atau 204)
                 if (response.status === 200 || response.status === 204) {
-                    setFilteredMemberData((prevData) =>
-                        prevData.map((item) =>
-                            item.id === newMember.id
-                                ? {
-                                        ...item,
-                                        name: newMember.name,
-                                        store_name: newMember.store_name,
-                                        place_of_birth: newMember.place_of_birth,
-                                        gender: newMember.gender,
-                                        employees: newMember.employees,
-                                        phone_number: newMember.phone_number,
-                                        email: newMember.email,
-                                        address: newMember.address,
-                                    }
-                                : item
-                        )
+                    const updatedImage = response?.data?.image_url;
+    
+                setFilteredMemberData((prevData) => {
+                    const updatedData = prevData.map((item) =>
+                        item.id === newMember.id
+                            ? {
+                                ...item,
+                                ...newMember,
+                                image: updatedImage || item.image,
+                            }
+                            : item
                     );
+                    return updatedData;
+                });
+    
+                
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil',
-                        text: 'Data Member berhasil diperbarui.',
+                        text: response.data.message,
                     });
                 } else {
                     throw new Error('Failed to update member');
                 }
             } else {
                 response = await axios.post('/member', formData);
-                const newMemberData = response.data; 
-            
-                setFilteredMemberData((prevData) => [...prevData, newMemberData]);
-            
+                setFilteredMemberData((prevData) => {
+                    const newData = [
+                        ...prevData,
+                        {
+                            ...response.data.member,
+                            image: response.data.member.image || '',   
+                        },
+                    ];
+                    return newData;
+                });
+                
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil',
-                    text: 'Data member berhasil ditambahkan.',
+                    text: response.data.message,
                 });
             }
-            // Tutup modal dan reset form
             setIsModalOpen(false);
             resetForm();
         } catch (error) {
@@ -97,10 +146,16 @@ export default function MemberData({ user, title, members }) {
         }
     };
 
-    const filteredData = filteredMemberData.filter((members) =>
-        members.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    const [itemsPerPage, setItemsPerPage] = useState(5); 
+
+
+    
+    const filteredData = filteredMemberData.filter((member) => {
+        const searchQueryLower = searchQuery.toLowerCase();
+        return Object.values(member)
+            .map(value => String(value).toLowerCase())
+            .some(value => value.includes(searchQueryLower));
+    });
+    
 
     const handleItemsPerPageChange = (event) => {
         setItemsPerPage(Number(event.target.value)); 
@@ -118,61 +173,66 @@ export default function MemberData({ user, title, members }) {
 
 
 
-     // Handle edit
-    const handleEditClick = (id) => {
-        const member = filteredMemberData.find((member) => member.id === id);
-        if (member) {
-            setNewMember({
-                ...member,
-                gender: member.gender || '', 
-            });
-            setIsEditMode(true);
-            setIsModalOpen(true);
+
+
+
+
+
+
+    // Handle delete
+    const handleDeleteClick = async (id) => {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: 'Data member ini akan dihapus secara permanen!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal',
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await axios.post(`/member/delete/${id}`, {
+                        _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    });
+                    setFilteredMemberData((prevData) => prevData.filter((members) => members.id !== id));
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.data.message,
+                    });
+                } catch (error) {
+                    console.error('Error deleting data:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Terjadi Kesalahan',
+                        text: 'Data batik tidak dapat dihapus.',
+                    });
+                }
+            }
+        });
+    };
+        
+
+    const handleDetailClick = (id) => {
+        const memberData = filteredData.find((member) => member.id === id);
+        if (memberData) {
+          setSelectedMember(memberData);
+          setIsDetailModalOpen(true);
+        } else {
+          console.log('Data tidak ditemukan');
         }
     };
 
 
 
-        // Handle delete
-        const handleDeleteClick = async (id) => {
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: 'Data member ini akan dihapus secara permanen!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Ya, hapus!',
-                cancelButtonText: 'Batal',
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const response = await axios.post(`/member/delete/${id}`, {
-                            _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        });
-                        setFilteredMemberData((prevData) => prevData.filter((members) => members.id !== id));
-        
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: response.data.message,
-                        });
-                    } catch (error) {
-                        console.error('Error deleting data:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Terjadi Kesalahan',
-                            text: 'Data batik tidak dapat dihapus.',
-                        });
-                    }
-                }
-            });
-        };
-    
     // Handle cancel modal
     const handleCancel = () => {
         setIsModalOpen(false);
         setIsEditMode(false);
+        setImagePreview(null);
         resetForm();
     };
 
@@ -187,18 +247,10 @@ export default function MemberData({ user, title, members }) {
             phone_number: '',
             address: ''
         });
+        setImagePreview(null);
     };
 
-    const handleDetailClick = (id) => {
-        const memberData = filteredData.find((member) => member.id === id);
-        if (memberData) {
-          setSelectedMember(memberData);
-          setIsDetailModalOpen(true);
-        } else {
-          console.log('Data tidak ditemukan');
-        }
-      };
-      
+
 
     return (
         <AuthenticatedLayout user={user} header={<h2 className="font-semibold text-xl text-gray-800">{title}</h2>}>
@@ -206,33 +258,43 @@ export default function MemberData({ user, title, members }) {
 
             <div className="py-6 bg-gray-50">
             <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                {/* Search and Add Member Section */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
-                    <div className="relative w-full sm:w-1/3">
-                        <input
-                            type="text"
-                            placeholder="Search member..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="p-3 pl-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
-                        />
-                        <div className="absolute top-0 left-0 flex items-center h-full pl-3">
-                            <FiSearch className="text-gray-400" />
-                        </div>
+            {/* Search and Add Member Section */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
+                {/* Search Input */}
+                <div className="relative w-full sm:w-1/4"> {/* Perkecil lebar input */}
+                    <input
+                        type="text"
+                        placeholder="Cari anggota..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
+                    />
+                    <div className="absolute top-0 left-0 flex items-center h-full pl-3">
+                        <FiSearch className="text-gray-400" />
                     </div>
-                    <button
-                            onClick={() => {
-                                setIsEditMode(false);
-                                setNewMember({ name: '', email: '', phone_number: '', address: '' });
-                                setIsModalOpen(true);
-                            }}
-                            className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
                         >
-                            <FiPlus className="mr-2" />
-                            Tambah Member
+                            <FiXCircle className="text-lg" />
                         </button>
+                    )}
                 </div>
 
+                {/* Add Member Button */}
+                <button
+                    onClick={() => {
+                        setIsEditMode(false);
+                        setNewMember({ name: '', email: '', phone_number: '', address: '', image:'' });
+                        setIsModalOpen(true);
+                    }}
+                    className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
+                >
+                    <FiPlus className="mr-2" />
+                    Tambah Member
+                </button>
+            </div>
                 {/* Table for Member Data */}
                 <div className="overflow-hidden bg-white rounded-lg shadow-xl border border-gray-200">
                     <div className="overflow-x-auto">
@@ -240,18 +302,20 @@ export default function MemberData({ user, title, members }) {
                             <thead className="bg-blue-500 text-white">
                                 <tr>
                                     <th className="px-6 py-4 text-sm font-semibold text-left">#</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Name</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Store</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Phone</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Address</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left">Anggota MPIG-BTMC</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nama Toko</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nomor Telepon</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left">Alamat</th>
+                                    {/* <th className="px-6 py-4 text-sm font-semibold text-left">Logo</th> */}
                                     <th className="px-6 py-4 text-sm font-semibold text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentData.map((member, index) => (
+                                {currentData.length > 0 ? (
+                                    currentData.map((member, index) => (
                                     <tr key={member.id} className="border-b hover:bg-gray-100 transition-all">
                                         <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                                            {String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
+                                        {String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-800">{member.name}</td>
                                         <td className="px-6 py-4 text-sm text-gray-800">{member.store_name}</td>
@@ -263,9 +327,17 @@ export default function MemberData({ user, title, members }) {
                                                 </span>
                                             </div>
                                         </td>
+                                        {/* <td className="px-6 py-4 text-sm text-gray-800">
+                                            {member.image && (
+                                                <img
+                                                    src={`${member.image}`}
+                                                    alt={member.name}
+                                                    className="w-full h-12 object-cover rounded-lg shadow-sm mb-4 mt-2"
+                                                />
+                                            )}
+                                        </td> */}
                                         <td className="px-4 py-2 text-center">
                                         <div className="flex justify-center space-x-2">
-
                                             {/* Tombol Edit */}
                                             <button
                                             type="button"
@@ -288,6 +360,7 @@ export default function MemberData({ user, title, members }) {
                                                 Detail
                                             </span>
                                             </button>
+
                                             {/* Tombol Hapus */}
                                             <button
                                             className="bg-red-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-red-600 transition-all shadow-sm relative group"
@@ -298,13 +371,22 @@ export default function MemberData({ user, title, members }) {
                                                 Hapus
                                             </span>
                                             </button>
-
                                         </div>
                                         </td>
-
                                     </tr>
-                                ))}
-                            </tbody>
+                                    ))
+                                ) : (
+                                    <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="px-6 py-4 text-center text-gray-500 text-sm font-medium"
+                                    >
+                                        Tidak ada data yang tersedia.
+                                    </td>
+                                    </tr>
+                                )}
+                                </tbody>
+
                         </table>
                     </div>
                 
@@ -411,89 +493,97 @@ export default function MemberData({ user, title, members }) {
             </div>
 
 
-
-
             <div
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-all ${
-                    isDetailModalOpen ? 'opacity-100 visible z-50' : 'opacity-0 invisible z-0'
-                }`}
-            >
-                <div className="bg-white p-6 rounded-lg shadow-lg w-4/5 max-w-lg transition-transform transform scale-100 overflow-y-auto max-h-[90vh]">
-                    {/* Header */}
-                    <div className="border-b border-gray-200 mb-4 pb-3 flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-700 text-center flex-grow">Detail Anggota</h2>
-                    </div>
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-all ${
+                isDetailModalOpen ? 'opacity-100 visible z-50' : 'opacity-0 invisible z-0'
+            }`}
+        >
+            <div className="bg-white p-6 rounded-lg shadow-lg w-4/5 max-w-lg transition-transform transform scale-100 overflow-y-auto max-h-[90vh]">
+                {/* Header */}
+                <div className="border-b border-gray-200 mb-4 pb-3 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-700 text-center flex-grow">Detail Anggota</h2>
+                </div>
 
-                    {/* Member Detail */}
-                    {selectedMember ? (
-                        <div className="space-y-3 text-gray-700 text-sm">
-                            <div className="flex items-center space-x-3">
-                                <FiUser className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Nama Anggota MPIG-BTMC:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.name}</span>
-                                </p>
+                {/* Member Detail */}
+                {selectedMember ? (
+                    <div className="space-y-3 text-gray-700 text-sm">
+                        {/* Gambar Logo Anggota */}
+                        {selectedMember.image && (
+                            <div className="flex justify-center mb-4">
+                                <img
+                                    src={selectedMember.image} 
+                                    alt="Logo Anggota"
+                                    className="w-24 h-24 object-cover rounded-lg "
+                                />
                             </div>
-                            <div className="flex items-center space-x-3">
-                                <FiHome className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Nama Merek (Toko):</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.store_name}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <FiMail className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Email:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.email}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <FiPhone className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Nomor HP:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.phone_number}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <FiMapPin className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Tempat Lahir:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.place_of_birth}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <FiUsers className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Jumlah Pekerja:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.employees}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <FiMapPin className="text-gray-700 text-lg" />
-                                <p>
-                                    <strong>Alamat:</strong>{' '}
-                                    <span className="text-gray-900">{selectedMember.address}</span>
-                                </p>
-                            </div>
+                        )}
+
+                        <div className="flex items-center space-x-3">
+                            <FiUser className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Nama Anggota MPIG-BTMC:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.name}</span>
+                            </p>
                         </div>
-                    ) : (
-                        <p className="text-gray-500 text-sm text-center">Data tidak ditemukan</p>
-                    )}
-
-                    {/* Footer dengan Tombol Tutup */}
-                    <div className="mt-6 flex justify-end space-x-4">
-                        <button
-                            onClick={() => setIsDetailModalOpen(false)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-shadow shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex items-center space-x-2"
-                        >
-                            <FiXCircle className="text-sm" />
-                            <span>Close</span>
-                        </button>
+                        <div className="flex items-center space-x-3">
+                            <FiHome className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Nama Merek (Toko):</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.store_name}</span>
+                            </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <FiMail className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Email:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.email}</span>
+                            </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <FiPhone className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Nomor HP:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.phone_number}</span>
+                            </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <FiMapPin className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Tempat Lahir:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.place_of_birth}</span>
+                            </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <FiUsers className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Jumlah Pekerja:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.employees}</span>
+                            </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <FiMapPin className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Alamat:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.address}</span>
+                            </p>
+                        </div>
                     </div>
+                ) : (
+                    <p className="text-gray-500 text-sm text-center">Data tidak ditemukan</p>
+                )}
+
+                {/* Footer dengan Tombol Tutup */}
+                <div className="mt-6 flex justify-end space-x-4">
+                    <button
+                        onClick={() => setIsDetailModalOpen(false)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-shadow shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex items-center space-x-2"
+                    >
+                        <FiXCircle className="text-sm" />
+                        <span>Close</span>
+                    </button>
                 </div>
             </div>
-
+        </div>
 
 
 
@@ -603,7 +693,8 @@ export default function MemberData({ user, title, members }) {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon</label>
                                     <input
-                                        type="text"
+                                        type="number"
+                                        min={0}
                                         value={newMember.phone_number || ''}
                                         onChange={(e) => setNewMember({ ...newMember, phone_number: e.target.value })}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
@@ -612,10 +703,11 @@ export default function MemberData({ user, title, members }) {
                                 </div>
 
                                 {/* Jumlah Pekerja */}
-                                <div>
+                                <div className="flex flex-col">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pekerja</label>
                                     <input
-                                        type="text"
+                                        type="number"
+                                        min={0}
                                         value={newMember.employees || ''}
                                         onChange={(e) => setNewMember({ ...newMember, employees: e.target.value })}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
@@ -624,7 +716,7 @@ export default function MemberData({ user, title, members }) {
                                 </div>
 
                                 {/* Alamat */}
-                                <div className="sm:col-span-2">
+                                <div className="flex flex-col">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Toko</label>
                                     <textarea
                                         value={newMember.address || ''}
@@ -634,6 +726,33 @@ export default function MemberData({ user, title, members }) {
                                         required
                                     ></textarea>
                                 </div>
+
+                            {/* Image Toko */}
+                            <div>
+                                <label htmlFor="image" className="block text-sm font-semibold mb-2">
+                                    Logo Toko
+                                </label>
+                                <input
+                                    type="file"
+                                    id="image"
+                                    name="image"
+                                    onChange={handleImageChange}
+                                    className="p-2 border border-gray-300 rounded-lg w-full mb-4"
+                                />
+                                {imagePreview || newMember.imagePreview ? ( 
+                                    <div className="mt-2 flex justify-center">
+                                        <img
+                                            src={imagePreview || newMember.imagePreview} 
+                                            alt="Preview"
+                                            className="w-32 h-32 object-cover rounded-lg" 
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
+
+
+
+
                             </div>
 
                             <div className="flex justify-end mt-4 space-x-3">

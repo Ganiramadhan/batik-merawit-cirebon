@@ -65,11 +65,16 @@ class BatikController extends Controller
 
         public function store(Request $request)
         {
+
+            $request->merge([
+                'price' => str_replace('.', '', $request->input('price'))
+            ]);
+
+            // dd($request->all());
             $validatedData = $request->validate([
                 'code_batik' => 'required|unique:batiks|max:255',
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric',
-                'stock' => 'required|integer',
                 'description' => 'nullable|string',
                 'image' => 'nullable|image|max:2048',
                 'member_id' => 'nullable|exists:members,id',
@@ -96,9 +101,14 @@ class BatikController extends Controller
         
             // Save the batik data to the database
             $batik = Batik::create($validatedData);
+            return response()->json([
+                'message' => 'Data batik berhasil ditambahkan
+                .',
+                'batik' => $batik,
+            ]);
         
-            return response()->json($batik);
         }
+
         
 
     /**
@@ -112,7 +122,6 @@ class BatikController extends Controller
                 'code_batik' => 'required|string|max:10|unique:batiks,code_batik,' . $id,
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric|min:0',
-                'stock' => 'required|integer|min:0',
                 'description' => 'nullable|string|max:1000',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'member_id' => 'nullable|exists:members,id',
@@ -145,10 +154,11 @@ class BatikController extends Controller
         }
 
 
+
+    // Qr Code Scan 
     public function detail($code)
     {
         $batik = Batik::where('code_batik', $code)->firstOrFail();
-        // print_r($batik);die();
         return Inertia::render('Batik/QrCode', ['batik' => $batik]);
     }
 
@@ -158,13 +168,10 @@ class BatikController extends Controller
      * Remove the specified resource from storage.
      */
     public function destroy(Batik $batik) {
-        // Hapus gambar terkait jika ada
         if ($batik->image) {
             Storage::disk('public')->delete($batik->image);
         }
-    
-        // Hapus data batik dari basis data
-        $batik->delete();
+            $batik->delete();
     
         return response()->json([
             'success' => true,

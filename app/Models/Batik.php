@@ -10,7 +10,7 @@ class Batik extends Model
     use HasFactory;
     
     protected $table = 'batiks';
-    protected $fillable = ['id', 'code_batik', 'name', 'price', 'stock', 'qr_code', 'image', 'description', 'motif_creator', 'bricklayer_name', 'production_year', 'materials', 'color_materials', 'member_id'];
+    protected $fillable = ['id', 'code_batik', 'name', 'price', 'qr_code', 'image', 'description', 'motif_creator', 'bricklayer_name', 'production_year', 'materials', 'color_materials', 'member_id'];
 
     /**
      * Relasi ke tabel members
