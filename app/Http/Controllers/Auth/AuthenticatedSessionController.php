@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Fish;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,13 +36,10 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerate();
             
             $userTotal = User::count();
-            $productTotal = Fish::count();
-            // dd($productTotal);
                         return redirect()->intended(route('dashboard', absolute: false))
                             ->with([
                                 'success' => 'Login successful! Welcome to your dashboard.',
                                 'userTotal' => $userTotal,
-                                'productTotal' => $productTotal 
                             ]);
         }
     /**

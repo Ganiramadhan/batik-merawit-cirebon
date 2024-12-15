@@ -118,6 +118,11 @@ class BatikController extends Controller
 
         public function update(Request $request, $id)
         {
+
+            $request->merge([
+                'price' => str_replace('.', '', $request->input('price'))
+            ]);
+
             $validated = $request->validate([
                 'code_batik' => 'required|string|max:10|unique:batiks,code_batik,' . $id,
                 'name' => 'required|string|max:255',
@@ -137,7 +142,6 @@ class BatikController extends Controller
                 if ($batik->image && Storage::disk('public')->exists($batik->image)) {
                     Storage::disk('public')->delete($batik->image);
                 }
-                // Simpan gambar baru
                 $validated['image'] = $request->file('image')->store('images', 'public');
             } else {
                 $validated['image'] = $batik->image;
@@ -149,7 +153,7 @@ class BatikController extends Controller
             return response()->json([
                 'message' => 'Data batik berhasil diperbarui.',
                 'batik' => $batik,
-                'image_url' => $validated['image'] ? asset('storage/' . $validated['image']) . '?t=' . time() : null,
+                // 'image_url' => $validated['image'] ? asset('storage/' . $validated['image']) . '?t=' . time() : null,
             ]);
         }
 

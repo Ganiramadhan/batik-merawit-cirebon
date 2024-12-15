@@ -22,20 +22,20 @@ use App\Http\Middleware\IsAdmin;
 
 
 
-Route::get('/city', [RajaOngkirController::class, 'city']);
-Route::post('/shipping-cost', [ShippingController::class, 'checkShippingCost']);
+// Route::get('/city', [RajaOngkirController::class, 'city']);
+// Route::post('/shipping-cost', [ShippingController::class, 'checkShippingCost']);
 
 
-Route::prefix('fish')->name('fish.')->group(function () {
-    Route::get('/', [FishController::class, 'index'])->name('index');
-    Route::post('/', [FishController::class, 'store'])->name('store');  
-    Route::post('{fish}', [FishController::class, 'update'])->name('update');
-    Route::delete('{fish}', [FishController::class, 'destroy'])->name('destroy');
-});
+// Route::prefix('fish')->name('fish.')->group(function () {
+//     Route::get('/', [FishController::class, 'index'])->name('index');
+//     Route::post('/', [FishController::class, 'store'])->name('store');  
+//     Route::post('{fish}', [FishController::class, 'update'])->name('update');
+//     Route::delete('{fish}', [FishController::class, 'destroy'])->name('destroy');
+// });
 
 
 // Snap Payment 
-Route::post('/create-snap-token', [PaymentController::class, 'createTransaction']);
+// Route::post('/create-snap-token', [PaymentController::class, 'createTransaction']);
 
 
 
@@ -74,6 +74,7 @@ Route::prefix('transaction')->name('transaction.')->group(function () {
 });
 
 
+// Scan for detail batik 
 Route::get('/scan-batik/{code_batik}', [QrCodeController::class, 'show']);
 
 // Route::get('/', function () {
@@ -101,9 +102,11 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
 
 });
 
+// Route::fallback(function () {
+//     return('Not found');
+// });
+
 
 
 require __DIR__.'/auth.php';
-
-
 

@@ -7,7 +7,7 @@ import Select from 'react-select';
 import { FiEdit, FiTrash, FiDownload, FiPlus, FiX, FiSave , FiUser, FiTag,FiSearch, FiXCircle   } from "react-icons/fi";
 import btmcLogo from '../../../images/BTMC.png';
 import igiLogo from '../../../images/IGI.png';
-import newLogo from '../../../images/newBTMC.png';
+import defaultLogo from '../../../images/newBTMC.png';
 
 
 
@@ -42,10 +42,16 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     
         setNewBatik((prevState) => ({
             ...prevState,
-            [name]: name === "code_batik" ? value.replace(/^M/, '') : value,
+            [name]: name === "code_batik" 
+                ? value 
+                : name === "price"
+                ? value.replace(/\./g, "") 
+                : value, 
         }));
     };
+
     
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -74,15 +80,16 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     );
     
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
     
         try {
-            // Ambil harga dan pastikan menjadi angka bersih (menghilangkan karakter selain angka)
-            const cleanedPrice = newBatik.price
-                ? parseFloat(newBatik.price.toString().replace(/[^\d.-]/g, ""))
-                : 0;
-    
+            const cleanedPrice = newBatik.price && typeof newBatik.price === 'string' && newBatik.price.trim() !== ''
+            ? parseFloat(newBatik.price.replace(/\./g, ""))
+            : 0;
+        
+        
             // Validasi harga apakah valid (angka dan lebih besar dari 0)
             if (isNaN(cleanedPrice) || cleanedPrice <= 0) {
                 Swal.fire({
@@ -103,20 +110,10 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                 return;
             }
     
-            // Validasi gambar jika mode tambah
-            if (!isEditMode && !newBatik.image) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Validasi',
-                    text: 'Gambar tidak boleh kosong.',
-                });
-                return;
-            }
-    
             const formData = new FormData();
             formData.append("price", cleanedPrice);
+            formData.append("code_batik", `M${newBatik.code_batik}`);
     
-            // Mengirim data lainnya, kecuali price dan nama
             Object.keys(newBatik).forEach((key) => {
                 if (newBatik[key]) {
                     formData.append(key, newBatik[key]);
@@ -133,7 +130,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             // Jika mode edit, lakukan update
             if (isEditMode && newBatik.id) {
                 response = await axios.post(`/batik/${newBatik.id}`, formData);
-                const updatedImage = response?.data?.image_url;
+                const updatedImage = response.data.batik.image;
     
                 setFilteredBatikData((prevData) => {
                     return prevData.map((item) =>
@@ -198,21 +195,16 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             }
         }
     };
-    
-    
-    
-    
-    
+
 
     const handleEditClick = (id) => {
         const selectedBatik = filteredBatikData.find((item) => item.id === id);
         if (selectedBatik) {
-            console.log('Price:', selectedBatik.price)
             setNewBatik({
                 id: selectedBatik.id,
                 code_batik: selectedBatik.code_batik || '',
                 name: selectedBatik.name || '',
-                price: selectedBatik.price || 0, 
+                price: selectedBatik.price ? selectedBatik.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : '', 
                 stock: selectedBatik.stock || '',
                 description: selectedBatik.description || '',
                 image: '', 
@@ -239,8 +231,13 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             } else {
                 console.warn('Member not found for the given member_id.');
             }
+
+            if (selectedBatik.image) {
+                setImagePreview(`/storage/${selectedBatik.image}`); 
+            } else {
+                setImagePreview(null);
+            }
     
-            setImagePreview(selectedBatik.image ? `${selectedBatik.image}` : null);
             setImageName(selectedBatik.image ? selectedBatik.image.split('/').pop() : '');
     
             setIsModalOpen(true);
@@ -312,8 +309,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
     };
     
-    
-    
 
     
     const resetForm = () => {
@@ -365,24 +360,22 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     options.push({ value: 'custom', label: 'Custom (Input Manual)' });
 
 
-    const getStoreName = (memberId) => {
-        const member = members.find(member => member.id === memberId);
-        return member ? member.store_name : '-';
-    };
-
-
-    const formatToRupiahInput = (value) => {
+    const formatToRupiah  = (value) => {
         value = value.replace(/\D/g, "");
         
         return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     };
     
+
     const handlePriceChange = (e) => {
-        const formattedPrice = formatToRupiahInput(e.target.value);
-        setNewBatik((prev) => ({ ...prev, price: formattedPrice }));
+        const formattedPrice = e.target.value.replace(/\D/g, ""); 
+        const priceWithRupiah = formatToRupiah(formattedPrice); 
+        setNewBatik((prev) => ({
+            ...prev,
+            price: priceWithRupiah, 
+        }));
     };
     
-
     
 
     return (
@@ -391,7 +384,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
             <div className="py-6 bg-gray-50">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-                  {/* Input dengan Ikon Cari dan Tombol Clear */}
                     <div className="flex flex-col sm:flex-row items-center justify-between mb-6 bg-white p-6 rounded-lg shadow-md">
                         <div className="relative w-full sm:w-1/4"> 
                             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
@@ -431,7 +423,19 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="text-lg font-semibold text-gray-800 truncate">{batik.name}</h3>
                                     </div>
-                                    <p className="text-gray-600 text-sm"><span className="font-bold">Deskripsi:</span> {batik.description}</p>
+                                    <p className="text-gray-600 text-sm">
+                                        <span className="font-bold">Deskripsi:</span> 
+                                        <span className="block max-w-xs" title={batik.description}>
+                                            {batik.description.length > 150 ? `${batik.description.slice(0, 150)}...` : batik.description}
+                                        </span>
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-semibold text-gray-800 truncate">
+                                            Rp {parseInt(batik.price).toLocaleString('id-ID')}
+                                        </h3>
+                                    </div>
+
 
                                     <div className="flex items-center justify-between mb-2 mt-4">
                                         <div className="text-sm font-bold text-gray-800">
@@ -447,12 +451,10 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
                                     </div>
 
-
-                                    {/* Image with Stock Badge */}
                                     <div className="relative">
                                         {batik.image && (
                                             <img
-                                                src={`${batik.image}`}
+                                                src={`/storage/${batik.image}`} 
                                                 alt={batik.name}
                                                 className="w-full h-40 object-cover rounded-lg shadow-sm mb-4 mt-2"
                                             />
@@ -508,7 +510,8 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                                 };
 
                                                 // Ambil logo dinamis
-                                                const memberLogo = batik.member?.image || newLogo;
+                                                const memberLogo = batik.member?.image ? `/storage/${batik.member.image}` : defaultLogo;
+                                                console.log('Member Logo:', memberLogo);
 
                                                 // Muat semua gambar secara paralel
                                                 const [btmcImage, igiImage, memberImage, qrImage] = await Promise.all([
@@ -602,7 +605,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             </div>
 
 
-                {isModalOpen && (
+            {isModalOpen && (
                     <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
                         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-auto transition-all ease-in-out duration-300 relative">
                         
@@ -739,7 +742,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {/* Batik Fields */}
+                               {/* Batik Fields */}
                                 <div>
                                     <label htmlFor="code_batik" className="block text-sm font-medium text-gray-700 mb-2">
                                         Kode Batik Merawit
@@ -748,11 +751,12 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         type="text"
                                         id="code_batik"
                                         name="code_batik"
-                                        value={`M${newBatik.code_batik}`}
+                                        value={`M${newBatik.code_batik.replace(/^M/, '')}`}
                                         onChange={handleInputChange}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     />
+
                                 </div>
 
                                 <div>
@@ -761,28 +765,48 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <Select
-                                        id="name"
-                                        name="name"
-                                        value={options.find((option) => option.value === newBatik.name)}
-                                        onChange={handleSelectChange}
-                                        options={options}
-                                        required
-                                        className="w-full"
+                                            id="name"
+                                            name="name"
+                                            value={options.find((option) => option.value === newBatik.name)}
+                                            onChange={handleSelectChange}
+                                            options={[
+                                                ...options
+                                                    .filter((option) => option.value !== 'custom')
+                                                    .sort((a, b) => a.label.localeCompare(b.label)),
+                                                options.find((option) => option.value === 'custom'),
+                                            ]}
+                                            required
+                                            className="w-full"
                                         />
                                         {newBatik.name === 'custom' && (
-                                        <input
-                                            type="text"
-                                            id="customName"
-                                            name="customName"
-                                            value={customName}
-                                            onChange={(e) => setCustomName(e.target.value)}
-                                            placeholder="Masukkan Nama Batik"
-                                            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                        />
+                                            <input
+                                                type="text"
+                                                id="customName"
+                                                name="customName"
+                                                value={customName}
+                                                onChange={(e) => setCustomName(e.target.value)}
+                                                placeholder="Masukkan Nama Batik"
+                                                className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
                                         )}
                                     </div>
-                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="production_year" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tahun Produksi
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="production_year"
+                                        name="production_year"
+                                        value={newBatik.production_year || ""}
+                                        onChange={handleInputChange}
+                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
 
                                     <div>
                                     <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
@@ -828,37 +852,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         required
                                     />
                                 </div>
-
-                                <div>
-                                    <label htmlFor="production_year" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Tahun Produksi
-                                    </label>
-                                    <input
-                                        type="number"
-                                        id="production_year"
-                                        name="production_year"
-                                        value={newBatik.production_year || ""}
-                                        onChange={handleInputChange}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    />
-                                </div>
-
-                                {/* <div>
-                                    <label htmlFor="batik_quallity" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Kualitas Batik
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="batik_quallity"
-                                        name="batik_quallity"
-                                        value= 'Tulis'
-                                        readOnly
-                                        onChange={handleInputChange}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    />
-                                </div> */}
                                 <div>
                                     <label htmlFor="materials" className="block text-sm font-medium text-gray-700 mb-2">
                                         Bahan Baku Kain

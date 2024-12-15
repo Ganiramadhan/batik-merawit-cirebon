@@ -1,8 +1,9 @@
 import NavLink from '@/Components/NavLink';
 import Dropdown from '@/Components/Dropdown';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
-import { useEffect, useState } from 'react';
-import ganiPedia from '../../images/logo.png';
+import { useState } from 'react';
+import btmcLogo from '../../images/BTMC.png';
+
 
 const Navbar = ({ user }) => {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -14,7 +15,7 @@ const Navbar = ({ user }) => {
                     <div className="flex">
                         <div className="shrink-0 flex items-center">
                             {/* Menambahkan class CSS untuk mengecilkan ukuran gambar */}
-                            <img src={ganiPedia} alt="GaniPedia" className="h-8 w-auto" />
+                            <img src={btmcLogo} alt="BTMC Logo" className="h-8 w-auto" />
                         </div>
 
                         <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">

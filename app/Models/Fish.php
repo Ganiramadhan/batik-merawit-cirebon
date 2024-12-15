@@ -9,6 +9,6 @@ class Fish extends Model
 {
     use HasFactory;
 
-    protected $table = 'products';
-    protected $fillable = ['id', 'name', 'price_kg', 'stock', 'description', 'image', 'city'];
+    // protected $table = 'products';
+    // protected $fillable = ['id', 'name', 'price_kg', 'stock', 'description', 'image', 'city'];
 }

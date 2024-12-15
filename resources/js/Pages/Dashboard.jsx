@@ -7,7 +7,7 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
     const isAdmin = auth.user.role === 'admin';
     
     const Layout = isAdmin ? AuthenticatedLayout : UserLayout;
-    const headerText = isAdmin ? 'Admin Dashboard' : 'User Dashboard';
+    const headerText = isAdmin ? 'Dashboard' : 'Dashboard';
 
     return (
         <Layout
@@ -19,9 +19,9 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
             <div className="py-6">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
+                        {/* <div className="p-6 text-gray-900">
                             {isAdmin ? 'Welcome Admin! You\'re logged in!' : 'Welcome User! You\'re logged in!'}
-                        </div>
+                        </div> */}
 
                         {/* Display total counts for Admin */}
                         {isAdmin && (

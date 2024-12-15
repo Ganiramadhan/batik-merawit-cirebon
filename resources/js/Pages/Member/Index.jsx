@@ -52,17 +52,17 @@ export default function MemberData({ user, title, members }) {
     const handleEditClick = (id) => {
         const member = filteredMemberData.find((member) => member.id === id);
         if (member) {
-            // Set data member dan pastikan untuk menyertakan imagePreview jika ada gambar yang sudah ada
             setNewMember({
                 ...member,
                 gender: member.gender || '',
-                imagePreview: member.image || '',  // Menggunakan URL gambar dari server jika ada
+                imagePreview: member.image ? `/storage/${member.image}` : '',  
             });
-            setImagePreview(member.image || ''); // Menyimpan URL gambar yang ada di server jika tersedia
+            setImagePreview(member.image ? `/storage/${member.image}` : ''); 
             setIsEditMode(true);
             setIsModalOpen(true);
         }
     };
+    
     
 
 
@@ -261,7 +261,7 @@ export default function MemberData({ user, title, members }) {
             {/* Search and Add Member Section */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
                 {/* Search Input */}
-                <div className="relative w-full sm:w-1/4"> {/* Perkecil lebar input */}
+                <div className="relative w-full sm:w-1/4"> 
                     <input
                         type="text"
                         placeholder="Cari anggota..."
@@ -270,7 +270,7 @@ export default function MemberData({ user, title, members }) {
                         className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
                     />
                     <div className="absolute top-0 left-0 flex items-center h-full pl-3">
-                        <FiSearch className="text-gray-400" />
+                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
                     </div>
                     {searchQuery && (
                         <button
@@ -511,7 +511,7 @@ export default function MemberData({ user, title, members }) {
                         {selectedMember.image && (
                             <div className="flex justify-center mb-4">
                                 <img
-                                    src={selectedMember.image} 
+                                    src={`/storage/${selectedMember.image}`}
                                     alt="Logo Anggota"
                                     className="w-24 h-24 object-cover rounded-lg "
                                 />
@@ -754,7 +754,6 @@ export default function MemberData({ user, title, members }) {
 
 
                             </div>
-
                             <div className="flex justify-end mt-4 space-x-3">
                                 {/* Tombol Cancel */}
                                 <button

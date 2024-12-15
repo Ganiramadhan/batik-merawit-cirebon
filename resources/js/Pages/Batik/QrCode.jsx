@@ -1,6 +1,6 @@
 import React from "react";
 import { Head, usePage } from "@inertiajs/react";
-import { FiUser, FiShoppingBag, FiTag, FiCreditCard, FiCalendar, FiPenTool, FiTool, FiLayers } from "react-icons/fi";
+import { FiUser, FiShoppingBag, FiTag, FiCreditCard, FiCalendar, FiPenTool, FiTool, FiLayers, FiMapPin } from "react-icons/fi";
 import btmcLogo from '../../../images/BTMC.png';
 import igiLogo from '../../../images/IGI.png';
 
@@ -109,6 +109,13 @@ export default function QrCode() {
                                 <div className="flex flex-col">
                                     <span className="text-gray-700 font-medium">Bahan:</span>
                                     <span className="text-gray-900 font-semibold">{batik.materials || "Tidak disebutkan"}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-3 border p-4 rounded-md">
+                                <FiMapPin className="text-gray-500 text-5xl" />
+                                <div className="flex flex-col">
+                                    <span className="text-gray-700 font-medium">Alamat Toko:</span>
+                                    <span className="text-gray-900 font-semibold">{batik.member?.address || "Tidak diketahui"}</span>
                                 </div>
                             </div>
                         </div>

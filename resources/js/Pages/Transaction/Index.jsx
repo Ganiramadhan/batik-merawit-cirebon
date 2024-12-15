@@ -245,7 +245,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                 className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
                             />
                             <div className="absolute top-0 left-0 flex items-center h-full pl-3">
-                                <FiSearch className="text-gray-400" />
+                                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
                             </div>
                             {searchQuery && (
                                 <button
