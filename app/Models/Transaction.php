@@ -10,7 +10,7 @@ class Transaction extends Model
     use HasFactory;
 
     protected $table = 'transaction';
-    protected $fillable = ['id', 'batik_id', 'transaction_date', 'notes'];
+    protected $fillable = ['id', 'batik_id','price', 'transaction_date', 'notes'];
 
     public function batik()
     {

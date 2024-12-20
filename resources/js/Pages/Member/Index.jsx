@@ -3,9 +3,10 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import * as XLSX from "xlsx"; 
 import { 
     FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo, 
-    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle 
+    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle, FiLoader, FiPrinter
 } from 'react-icons/fi';
 
 
@@ -18,6 +19,7 @@ export default function MemberData({ user, title, members }) {
     const [selectedMember, setSelectedMember] = useState(null);
     const [itemsPerPage, setItemsPerPage] = useState(5); 
     const [imagePreview, setImagePreview] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageName, setImageName] = useState('');
     const [newMember, setNewMember] = useState({
         name: '',
@@ -32,6 +34,38 @@ export default function MemberData({ user, title, members }) {
     });
     
     const [filteredMemberData, setFilteredMemberData] = useState(members);
+
+    const exportMemberData = () => {
+        setIsSubmitting(true); 
+        
+        setTimeout(() => {
+            const dataToExport = members.map(({ created_at, updated_at, image, ...rest }) => ({
+                "Nama": rest.name,
+                "Tempat Lahir": rest.place_of_birth,
+                "Jenis Kelamin": rest.gender,
+                "Jumlah Karyawan": rest.employees,
+                "Nama Toko": rest.store_name,
+                "Email": rest.email,
+                "Nomor Telepon": rest.phone_number,
+                "Alamat": rest.address,
+            }));
+        
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Member");
+        
+            // Ekspor file Excel
+            XLSX.writeFile(workbook, "data_member.xlsx");
+        
+            setIsSubmitting(false); 
+            Swal.fire({
+                icon: "success",
+                title: "Berhasil Ekspor",
+                text: "Data telah berhasil diekspor.",
+            });
+        }, 1000); 
+    };
+    
 
     const handleImageChange = (e) => {
         const file = e.target.files[0]; 
@@ -55,9 +89,9 @@ export default function MemberData({ user, title, members }) {
             setNewMember({
                 ...member,
                 gender: member.gender || '',
-                imagePreview: member.image ? `/storage/${member.image}` : '',  
+                imagePreview: member.image ? `/storage/app/public/${member.image}` : '',  
             });
-            setImagePreview(member.image ? `/storage/${member.image}` : ''); 
+            setImagePreview(member.image ? `/storage/app/public/${member.image}` : ''); 
             setIsEditMode(true);
             setIsModalOpen(true);
         }
@@ -65,86 +99,87 @@ export default function MemberData({ user, title, members }) {
     
     
 
+const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // Validation for image when not in edit mode
+    if (!isEditMode && !newMember.image) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Validasi',
+            text: 'Gambar tidak boleh kosong.',
+        });
+        return;
+    }
 
-            if (!isEditMode && !newMember.image) {
-                Swal.fire({
-                        icon: 'warning',
-                        title: 'Validasi',
-                        text: 'Gambar tidak boleh kosong.',
-                    });
-                    return;
-                }
-    
-        const formData = new FormData();
-        for (const key in newMember) {
-            formData.append(key, newMember[key]);
-        }
-    
-        try {
-            let response;
-    
-            if (isEditMode) {
-                response = await axios.post(`/member/${newMember.id}`, formData);
-    
-                // Cek jika respons berhasil (status 200 atau 204)
-                if (response.status === 200 || response.status === 204) {
-                    const updatedImage = response?.data?.image_url;
-    
+    // Prepare form data
+    const formData = new FormData();
+    for (const key in newMember) {
+        formData.append(key, newMember[key]);
+    }
+
+    setIsSubmitting(true); 
+
+    try {
+        let response;
+
+        // Edit mode (update)
+        if (isEditMode) {
+            response = await axios.post(`/member/${newMember.id}`, formData);
+
+            if (response.status === 200 || response.status === 204) {
+                const updatedImage = response?.data?.image_url;
                 setFilteredMemberData((prevData) => {
-                    const updatedData = prevData.map((item) =>
+                    return prevData.map((item) =>
                         item.id === newMember.id
                             ? {
-                                ...item,
-                                ...newMember,
-                                image: updatedImage || item.image,
-                            }
+                                  ...item,
+                                  ...newMember,
+                                  image: updatedImage || item.image,
+                              }
                             : item
                     );
-                    return updatedData;
                 });
-    
-                
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: response.data.message,
-                    });
-                } else {
-                    throw new Error('Failed to update member');
-                }
-            } else {
-                response = await axios.post('/member', formData);
-                setFilteredMemberData((prevData) => {
-                    const newData = [
-                        ...prevData,
-                        {
-                            ...response.data.member,
-                            image: response.data.member.image || '',   
-                        },
-                    ];
-                    return newData;
-                });
-                
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil',
                     text: response.data.message,
                 });
+            } else {
+                throw new Error('Failed to update member');
             }
-            setIsModalOpen(false);
-            resetForm();
-        } catch (error) {
-            console.error('Error:', error);
+        } else {
+            // Add new member
+            response = await axios.post('/member', formData);
+            setFilteredMemberData((prevData) => [
+                ...prevData,
+                {
+                    ...response.data.member,
+                    image: response.data.member.image || '',
+                },
+            ]);
+
             Swal.fire({
-                icon: 'error',
-                title: 'Terjadi Kesalahan',
-                text: 'Tidak dapat memproses permintaan.',
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.data.message,
             });
         }
-    };
+
+        setIsModalOpen(false); // Close modal after submission
+        resetForm(); // Reset form state
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Terjadi Kesalahan',
+            text: 'Tidak dapat memproses permintaan.',
+        });
+    } finally {
+        setIsSubmitting(false); // End the submission process
+    }
+};
 
 
 
@@ -170,10 +205,6 @@ export default function MemberData({ user, title, members }) {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-
-
-
 
 
 
@@ -259,42 +290,63 @@ export default function MemberData({ user, title, members }) {
             <div className="py-6 bg-gray-50">
             <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             {/* Search and Add Member Section */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
-                {/* Search Input */}
-                <div className="relative w-full sm:w-1/4"> 
-                    <input
-                        type="text"
-                        placeholder="Cari anggota..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
-                    />
-                    <div className="absolute top-0 left-0 flex items-center h-full pl-3">
-                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
+                    {/* Search Input */}
+                    <div className="relative w-full sm:w-1/3">
+                        <input
+                            type="text"
+                            placeholder="Cari anggota..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
+                        />
+                        <div className="absolute top-0 left-0 flex items-center h-full pl-3">
+                            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
+                        </div>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
+                            >
+                                <FiXCircle className="text-lg" />
+                            </button>
+                        )}
                     </div>
-                    {searchQuery && (
+
+                    {/* Buttons */}
+                    <div className="flex gap-2">
+                        {/* Add Member Button */}
                         <button
-                            onClick={() => setSearchQuery('')}
-                            className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
+                            onClick={() => {
+                                setIsEditMode(false);
+                                setNewMember({ name: '', email: '', phone_number: '', address: '', image: '' });
+                                setIsModalOpen(true);
+                            }}
+                            className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
                         >
-                            <FiXCircle className="text-lg" />
+                            <FiPlus className="mr-2" />
+                            Tambah Member
                         </button>
-                    )}
+
+                        {/* Export Data Button */}
+                        <button
+                            onClick={exportMemberData}
+                            className={`bg-blue-600 text-white py-2 px-3 rounded-lg flex items-center justify-center hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out ${
+                                isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <FiLoader className="animate-spin text-lg" />
+                            ) : (
+                                <FiPrinter className="text-lg" />
+                            )}
+                    </button>
+                    </div>
                 </div>
 
-                {/* Add Member Button */}
-                <button
-                    onClick={() => {
-                        setIsEditMode(false);
-                        setNewMember({ name: '', email: '', phone_number: '', address: '', image:'' });
-                        setIsModalOpen(true);
-                    }}
-                    className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
-                >
-                    <FiPlus className="mr-2" />
-                    Tambah Member
-                </button>
-            </div>
+
+
                 {/* Table for Member Data */}
                 <div className="overflow-hidden bg-white rounded-lg shadow-xl border border-gray-200">
                     <div className="overflow-x-auto">
@@ -330,7 +382,7 @@ export default function MemberData({ user, title, members }) {
                                         {/* <td className="px-6 py-4 text-sm text-gray-800">
                                             {member.image && (
                                                 <img
-                                                    src={`${member.image}`}
+                                                    src={`/storage/app/public/${member.image}`}
                                                     alt={member.name}
                                                     className="w-full h-12 object-cover rounded-lg shadow-sm mb-4 mt-2"
                                                 />
@@ -511,7 +563,7 @@ export default function MemberData({ user, title, members }) {
                         {selectedMember.image && (
                             <div className="flex justify-center mb-4">
                                 <img
-                                    src={`/storage/${selectedMember.image}`}
+                                    src={`/storage/app/public/${selectedMember.image}`}
                                     alt="Logo Anggota"
                                     className="w-24 h-24 object-cover rounded-lg "
                                 />
@@ -750,38 +802,43 @@ export default function MemberData({ user, title, members }) {
                                 ) : null}
                             </div>
 
-
-
-
                             </div>
                             <div className="flex justify-end mt-4 space-x-3">
-                                {/* Tombol Cancel */}
+                            {/* Cancel Button */}
                                 <button
                                     type="button"
                                     className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
-                                    onClick={handleCancel}
+                                    onClick={() => {
+                                        resetForm();  
+                                        setIsModalOpen(false); 
+                                    }}
                                 >
                                     <FiXCircle className="mr-2" />
                                     Cancel
                                 </button>
-
-                                {/* Tombol Simpan atau Update */}
-                                <button
-                                    type="submit"
-                                    className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition"
-                                >
-                                    {isEditMode ? (
-                                        <>
-                                            <FiEdit className="mr-2" />
-                                            Update
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FiSave className="mr-2" />
-                                            Simpan
-                                        </>
-                                    )}
-                                </button>
+                              {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting} // Disable button while submitting
+                                className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition disabled:bg-gray-300"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <FiLoader className="mr-2 animate-spin" />
+                                        {isEditMode ? 'Updating...' : 'Submitting...'}
+                                    </>
+                                ) : isEditMode ? (
+                                    <>
+                                        <FiEdit className="mr-2" />
+                                        Update
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiSave className="mr-2" />
+                                        Simpan
+                                    </>
+                                )}
+                            </button>
                             </div>
                         </form>
                     </div>

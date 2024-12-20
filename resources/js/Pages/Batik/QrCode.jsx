@@ -1,6 +1,6 @@
 import React from "react";
 import { Head, usePage } from "@inertiajs/react";
-import { FiUser, FiShoppingBag, FiTag, FiCreditCard, FiCalendar, FiPenTool, FiTool, FiLayers, FiMapPin } from "react-icons/fi";
+import { FiUser, FiShoppingBag, FiTag, FiCalendar, FiPenTool, FiTool, FiLayers, FiMapPin } from "react-icons/fi";
 import btmcLogo from '../../../images/BTMC.png';
 import igiLogo from '../../../images/IGI.png';
 
@@ -55,12 +55,15 @@ export default function QrCode() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiTag className="text-gray-500 text-xl" />
+                                
                                 <div className="flex flex-col">
                                     <span className="text-gray-700 font-medium">Kode Batik:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.code_batik}</span>
+                                    <span className="text-gray-900 font-semibold">
+                                    M-{batik.code_batik.slice(1).match(/.{1,2}/g).join('-')}
+                                    </span>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
+                            {/* <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiCreditCard className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">
                                     <span className="text-gray-700 font-medium">Harga:</span>
@@ -68,7 +71,7 @@ export default function QrCode() {
                                         {Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(batik.price)}
                                     </span>
                                 </div>
-                            </div>
+                            </div> */}
                             <div className="flex items-center space-x-3 border p-4 rounded-md">
                                 <FiUser className="text-gray-500 text-xl" />
                                 <div className="flex flex-col">

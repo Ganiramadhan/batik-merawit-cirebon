@@ -20,7 +20,7 @@ class MemberController extends Controller
         $user = Auth::user();
         $members = Member::all();
         return Inertia::render('Member/Index', [
-            'title' => 'Daftar Anggota',
+            'title' => 'Daftar Perjain Batik',
             'user' => $user,
             'members' => $members,
         ]);

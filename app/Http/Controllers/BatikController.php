@@ -74,9 +74,10 @@ class BatikController extends Controller
             $validatedData = $request->validate([
                 'code_batik' => 'required|unique:batiks|max:255',
                 'name' => 'required|string|max:255',
-                'price' => 'required|numeric',
+                'quality' => 'required|string|max:255',
+                // 'price' => 'required|numeric',
                 'description' => 'nullable|string',
-                'image' => 'nullable|image|max:2048',
+                'image' => 'nullable|image',
                 'member_id' => 'nullable|exists:members,id',
                 'motif_creator' => 'nullable|string|max:255',
                 'bricklayer_name' => 'nullable|string|max:255',
@@ -118,15 +119,16 @@ class BatikController extends Controller
 
         public function update(Request $request, $id)
         {
-
             $request->merge([
                 'price' => str_replace('.', '', $request->input('price'))
             ]);
-
+        
+            // Validasi data
             $validated = $request->validate([
-                'code_batik' => 'required|string|max:10|unique:batiks,code_batik,' . $id,
+                'code_batik' => 'required|string|unique:batiks,code_batik,' . $id,
                 'name' => 'required|string|max:255',
-                'price' => 'required|numeric|min:0',
+                'quality' => 'required|string|max:255',
+                // 'price' => 'required|numeric|min:0',
                 'description' => 'nullable|string|max:1000',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'member_id' => 'nullable|exists:members,id',
@@ -136,8 +138,11 @@ class BatikController extends Controller
                 'materials' => 'nullable|string|max:255',
                 'color_materials' => 'nullable|string|max:255',
             ]);
+        
+            // Ambil data batik yang ingin diupdate
             $batik = Batik::findOrFail($id);
         
+            // Update gambar jika ada file baru
             if ($request->hasFile('image')) {
                 if ($batik->image && Storage::disk('public')->exists($batik->image)) {
                     Storage::disk('public')->delete($batik->image);
@@ -147,15 +152,26 @@ class BatikController extends Controller
                 $validated['image'] = $batik->image;
             }
         
-            unset($validated['qr_code']); 
+            // Perbarui QR Code jika `code_batik` diubah
+            if ($validated['code_batik'] !== $batik->code_batik) {
+                $url = url("/scan-batik/{$validated['code_batik']}");
+                $qrCodeSvg = QrCode::format('svg')->size(200)->generate($url);
+                $qrCodeBase64 = base64_encode($qrCodeSvg);
+                $validated['qr_code'] = $qrCodeBase64;
+            } else {
+                // Tetap gunakan QR Code lama jika `code_batik` tidak berubah
+                $validated['qr_code'] = $batik->qr_code;
+            }
+        
+            // Lakukan update pada database
             $batik->update($validated);
         
             return response()->json([
                 'message' => 'Data batik berhasil diperbarui.',
                 'batik' => $batik,
-                // 'image_url' => $validated['image'] ? asset('storage/' . $validated['image']) . '?t=' . time() : null,
             ]);
         }
+        
 
 
 

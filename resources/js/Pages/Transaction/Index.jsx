@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
+import Select from 'react-select';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { 
     FiEdit, 
     FiTrash, 
@@ -15,8 +17,11 @@ import {
     FiSave, 
     FiXCircle, 
     FiInfo,           
-    
+    FiLoader,
+    FiPrinter,
+    FiUpload ,
 } from "react-icons/fi";
+
 
 
 export default function Transaction({ user, title, transactions, batiks }) {
@@ -29,6 +34,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [newTransaction, setNewTransaction] = useState({
         id: '',
         batik_id: '',
@@ -36,6 +42,77 @@ export default function Transaction({ user, title, transactions, batiks }) {
         transaction_date: '',
         notes: ''
     });
+
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false); 
+
+
+
+    const handleExportClick = () => {
+        setIsFilterModalOpen(true); 
+    };
+    const exportTransactionData = () => {
+        const filtered = transactions.filter(transaction => {
+            const transactionDate = new Date(transaction.transaction_date);
+            const startDate = new Date(filterStartDate);
+            const endDate = new Date(filterEndDate);
+    
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(23, 59, 59, 999);
+    
+            return transactionDate >= startDate && transactionDate <= endDate;
+        });
+    
+        // Format data yang sudah difilter untuk ekspor
+        const formattedData = filtered.map(transaction => {
+            const batik = batiks.find(b => b.id === transaction.batik_id);
+            return {
+                'Kode Batik': batik?.code_batik || '-',
+                'Nama Batik': batik?.name || '-',
+                'Harga': new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(transaction.price || 0),
+                'Tanggal Transaksi': new Date(transaction.transaction_date).toLocaleDateString('id-ID'),
+                'Catatan': transaction.notes || '-',
+            };
+        });
+    
+        // Ekspor data ke file Excel
+        exportToExcel(formattedData);
+    
+        Swal.fire({
+            icon: 'success',
+            title: 'Ekspor Berhasil!',
+            text: 'Data transaksi telah berhasil diekspor.',
+            confirmButtonText: 'OK',
+            timer: 3000, // Alert otomatis ditutup setelah 3 detik
+            timerProgressBar: true,
+        });
+    
+        setIsFilterModalOpen(false);
+        resetDateFilters();
+    };
+    
+    
+    // Function to reset date filters
+    const resetDateFilters = () => {
+        setFilterStartDate('');
+        setFilterEndDate('');
+    };
+    
+    // Function to export data to Excel
+    const exportToExcel = (data) => {
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    
+        const today = new Date();
+        const fileName = `Transactions-${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
+    
+        // Write the file to Excel
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
+    };
+    
+    
 
 
     // Search Data 
@@ -62,6 +139,10 @@ export default function Transaction({ user, title, transactions, batiks }) {
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
+
+    
+
+    
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return; 
         setCurrentPage(page);
@@ -75,22 +156,25 @@ export default function Transaction({ user, title, transactions, batiks }) {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+        
+        // Disable submit button while submitting
+        setIsSubmitting(true);
+        
         const formData = new FormData();
         Object.keys(newTransaction).forEach((key) => {
             formData.append(key, newTransaction[key]);
         });
-    
+        
         try {
             let response;
-    
+        
             if (isEditMode) {
                 response = await axios.post(`/transaction/${newTransaction.id}`, formData);
-    
+        
                 if (response.status === 200) {
                     const updatedTransaction = response.data.transaction;
                     const batikDetails = batiks.find(b => parseInt(b.id) === parseInt(updatedTransaction.batik_id));
-    
+        
                     setFilteredData((prevData) =>
                         prevData.map((item) =>
                             item.id === updatedTransaction.id
@@ -98,34 +182,91 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                 : item
                         )
                     );
-    
+        
                     Swal.fire('Success', response.data.message, 'success');
                 }
             } else {
                 response = await axios.post('/transaction', formData);
-    
+        
                 if (response.status === 200) {
                     const newTransactionData = response.data.transaction;
                     const batikDetails = batiks.find(b => parseInt(b.id) === parseInt(newTransactionData.batik_id));
-    
+        
                     setFilteredData((prev) => [
                         ...prev,
                         { ...newTransactionData, batik: batikDetails },
                     ]);
-    
+        
                     Swal.fire('Success', response.data.message, 'success');
                 }
             }
-    
+        
             setIsModalOpen(false);
             resetForm();
         } catch (error) {
             const errorMessage =
                 error.response?.data?.message || 'There was an error processing your request.';
             Swal.fire('Error', errorMessage, 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
+    
+
+    const batikOptions = batiks.map(batik => ({
+        value: batik.id,
+        label: batik.code_batik,
+    }));
+
+
+
+
+    const handleEditClick = (transaction) => {
+        try {
+            const selectedBatik = batiks.find(
+                (batik) => parseInt(batik.id, 10) === parseInt(transaction.batik_id, 10)
+            );
+        
+            // Format tanggal transaksi menjadi YYYY-MM-DD
+            const formattedDate = transaction.transaction_date
+                ? transaction.transaction_date.split(' ')[0] 
+                : '';
+    
+            if (selectedBatik) {
+                setIsEditMode(true);
+    
+                setNewTransaction({
+                    id: transaction.id || '',
+                    batik_id: transaction.batik_id || '',
+                    transaction_date: formattedDate || '', 
+                    notes: transaction.notes || '',
+                    code_batik: selectedBatik.code_batik || '',
+                    name: selectedBatik.name || '',
+                    price: transaction.price || 0,
+                });
+    
+                // Buka modal edit
+                setIsModalOpen(true);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Data batik tidak ditemukan. Silakan muat ulang dan coba lagi.',
+                });
+            }
+        } catch (error) {
+            // Tangani error yang tidak terduga
+            console.error('Error in handleEditClick:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan. Silakan coba lagi nanti.',
+            });
+        }
+    };
+    
+
 
 
     const handleDetailClick = (id) => {
@@ -148,27 +289,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
             console.log('Data tidak ditemukan');
         }
     };
-    
-
-
-    const handleEditClick = (transaction) => {
-        const selectedBatik = batiks.find((batik) => parseInt(batik.id) === parseInt(transaction.batik_id));
-        if (selectedBatik) {
-            setIsEditMode(true);
-            setNewTransaction({
-                id: transaction.id,
-                batik_id: transaction.batik_id,
-                transaction_date: transaction.transaction_date,
-                notes: transaction.notes,
-                name: selectedBatik.name,
-                price: selectedBatik.price,
-            });
-            setIsModalOpen(true);
-        } else {
-            Swal.fire('Error', 'Batik data not found. Please reload and try again.', 'error');
-        }
-    };
-
 
     const handleDeleteClick = (id) => {
         Swal.fire({
@@ -199,9 +319,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
         });
     };
     
-    
-
-
 
     const handleCancel = () => {
         setIsModalOpen(false);
@@ -213,18 +330,30 @@ export default function Transaction({ user, title, transactions, batiks }) {
         setNewTransaction({
             id: '',
             batik_id: '',
+            price: '',
             transaction_date: '',
             notes: ''
         });
     };
     
-
-    function formatRupiah(number) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-        }).format(number);
+    function formatRupiahInput(value) {
+        if (typeof value !== 'string') {
+            value = String(value); 
+        }
+        return value
+            .replace(/\D/g, '') 
+            .replace(/\B(?=(\d{3})+(?!\d))/g, '.'); 
     }
+    
+    
+    function handlePriceChange(input) {
+        const numericValue = input.replace(/[^0-9]/g, '');
+        setNewTransaction((prev) => ({
+            ...prev,
+            price: numericValue, 
+        }));
+    }
+    
     
 
 
@@ -234,47 +363,112 @@ export default function Transaction({ user, title, transactions, batiks }) {
 
             <div className="py-6 bg-gray-50">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
-                        {/* Search Input */}
-                        <div className="relative w-full sm:w-1/4">
-                            <input
-                                type="text"
-                                placeholder="Cari transaksi..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
-                            />
-                            <div className="absolute top-0 left-0 flex items-center h-full pl-3">
-                                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                            </div>
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
-                                >
-                                    <FiXCircle className="text-lg" />
-                                </button>
-                            )}
-                        </div>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
 
-                        {/* Add Transaction Button */}
-                        <button
-                            onClick={() => {
-                                setIsEditMode(false);
-                                setNewTransaction({
-                                    batik_id: '',
-                                    transaction_date: '',
-                                    notes: ''
-                                });
-                                setIsModalOpen(true);
-                            }}
-                            className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
-                        >
-                            <FiPlus className="mr-2" />
-                            Tambah Transaksi
-                        </button>
+                {/* Search Input */}
+                <div className="relative w-full sm:w-1/4">
+                    <input
+                        type="text"
+                        placeholder="Cari transaksi..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="p-3 pl-10 pr-10 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
+                    />
+                    <div className="absolute top-0 left-0 flex items-center h-full pl-3">
+                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
                     </div>
+                    {searchQuery && (
+                        <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute top-0 right-0 flex items-center h-full pr-3 text-gray-400 hover:text-black text-lg"
+                        >
+                        <FiXCircle className="text-lg" />
+                        </button>
+                    )}
+                </div>
 
+                {/* Action Buttons */}
+                <div className="flex items-center gap-4 mt-4">
+                    {/* Add Transaction Button */}
+                    <button
+                        onClick={() => {
+                        setIsEditMode(false);
+                        setNewTransaction({
+                            batik_id: '',
+                            transaction_date: '',
+                            notes: ''
+                        });
+                        setIsModalOpen(true);
+                        }}
+                        className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
+                    >
+                        <FiPlus className="mr-2" />
+                        Tambah Transaksi
+                    </button>
+
+
+                    {/* Export Button */}
+                    <button
+                        onClick={handleExportClick}
+                        className="bg-blue-600 text-white py-2 px-3 rounded-lg flex items-center hover:bg-blue-700 transition-all shadow-lg transform hover:scale-105 text-sm"
+                    >
+                        <FiPrinter className="text-lg" />
+                    </button>
+                </div>
+
+               {/* Modal for filtering */}
+                {isFilterModalOpen && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-xl w-full sm:w-96 max-w-md relative">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setIsFilterModalOpen(false)}
+                                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors"
+                            >
+                                <FiXCircle className="w-6 h-6" /> {/* Close Icon */}
+                            </button>
+
+                            {/* Modal Content */}
+                            <h3 className="text-xl mb-6 font-semibold text-gray-800 text-center">Filter Transaksi</h3>
+
+                            {/* Start Date input */}
+                            <div className="mb-5">
+                                <label className="block text-sm font-medium text-gray-700">Pilih Tanggal Mulai</label>
+                                <input
+                                    type="date"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={filterStartDate}
+                                    onChange={(e) => setFilterStartDate(e.target.value)}
+                                />
+                            </div>
+
+                            {/* End Date input */}
+                            <div className="mb-5">
+                                <label className="block text-sm font-medium text-gray-700">Pilih Tanggal Selesai</label>
+                                <input
+                                    type="date"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={filterEndDate}
+                                    onChange={(e) => setFilterEndDate(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Export Button */}
+                            <div className="flex justify-end mt-6">
+                                <button
+                                    onClick={exportTransactionData}
+                                    className="bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors"
+                                >
+                                    <FiUpload /> {/* Icon Export */}
+                                    <span>Export Data</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+                    </div>
                     {/* Table for Transaction Data */}
                     <div className="overflow-hidden bg-white rounded-lg shadow-xl border border-gray-200">
                         <div className="overflow-x-auto">
@@ -305,11 +499,15 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
                                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
-                                                    transaction.batik?.price || 0
+                                                    transaction.price || 0
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
-                                                    {new Date(transaction.transaction_date).getDate().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getMonth().toString().padStart(2,'0')}-{new Date(transaction.transaction_date).getFullYear()}
+                                                    {new Date(transaction.transaction_date).toLocaleDateString('en-US', {
+                                                        month: '2-digit',
+                                                        day: '2-digit',
+                                                        year: 'numeric',
+                                                    })}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
                                                     <div className="relative">
@@ -527,7 +725,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                             </td>
                             <td className="py-2 px-4 border border-gray-200 w-2/3">
                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
-                                selectedTransaction.batik?.price || 0
+                                selectedTransaction.price || 0
                                 )}
                             </td>
                             </tr>
@@ -562,7 +760,6 @@ export default function Transaction({ user, title, transactions, batiks }) {
             )}
 
 
-
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
                     <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-xl transition-transform transform scale-95 overflow-y-auto max-h-[90vh]">
@@ -588,30 +785,25 @@ export default function Transaction({ user, title, transactions, batiks }) {
                             <div className="grid grid-cols-1 gap-4">
                                 {/* Kode Batik */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Kode Batik</label>
-                                    <select
-                                        value={newTransaction.batik_id || ''}
-                                        onChange={(e) => {
-                                            const selectedBatik = batiks.find(batik => batik.id === parseInt(e.target.value));
+                                    <label htmlFor="batik_id" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Kode Batik
+                                    </label>
+                                    <Select
+                                        value={batikOptions.find(option => option.value === newTransaction.batik_id) || null}
+                                        onChange={(selectedOption) => {
+                                            const selectedBatik = batiks.find(batik => batik.id === selectedOption.value);
                                             setNewTransaction({
                                                 ...newTransaction,
-                                                batik_id: e.target.value,
-                                                price: selectedBatik ? selectedBatik.price : '',
+                                                batik_id: selectedOption.value,
                                                 name: selectedBatik ? selectedBatik.name : '',
                                             });
                                         }}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="">Pilih Kode Batik</option>
-                                        {batiks.map((batik) => (
-                                            <option key={batik.id} value={batik.id}>
-                                                {batik.code_batik}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
+                                        options={batikOptions}
+                                        className="w-full"
+                                        classNamePrefix="react-select"
+                                        isRequired
+                                    />
+                                </div>  
                                 {/* Nama Batik */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Nama Motif Batik</label>
@@ -628,9 +820,9 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
                                     <input
                                         type="text"
-                                        value={newTransaction.price ? formatRupiah(newTransaction.price) : ''}
+                                        value={formatRupiahInput(newTransaction.price) || ''}
+                                        onChange={(e) => handlePriceChange(e.target.value)}
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        readOnly
                                     />
                                 </div>
 
@@ -644,6 +836,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
+
                                 </div>
 
                                 {/* Catatan */}
@@ -661,20 +854,16 @@ export default function Transaction({ user, title, transactions, batiks }) {
                             <div className="flex justify-end mt-4 space-x-3">
                                 {/* Tombol Cancel */}
                                 <button
-                                    type="button"
-                                    className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
-                                    onClick={handleCancel}
-                                >
-                                    <FiXCircle className="mr-2" />
-                                    Cancel
-                                </button>
-
-                                {/* Tombol Simpan atau Update */}
-                                <button
                                     type="submit"
-                                    className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition"
+                                    disabled={isSubmitting}  // Disable button while submitting
+                                    className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition disabled:bg-gray-300"
                                 >
-                                    {isEditMode ? (
+                                    {isSubmitting ? (
+                                        <>
+                                            <FiLoader className="mr-2 animate-spin" />
+                                            {isEditMode ? 'Updating...' : 'Submitting...'}
+                                        </>
+                                    ) : isEditMode ? (
                                         <>
                                             <FiEdit className="mr-2" />
                                             Update
@@ -686,6 +875,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                         </>
                                     )}
                                 </button>
+
                             </div>
                         </form>
                     </div>

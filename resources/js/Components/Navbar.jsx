@@ -22,7 +22,7 @@ const Navbar = ({ user }) => {
                             <NavLink href={route('dashboard')} active={route().current('dashboard')}>Dashboard</NavLink>
                             {/* <NavLink href={route('fish.index')} active={route().current('fish.index')}>Product</NavLink> */}
                             <NavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</NavLink>
-                            <NavLink href={route('member.index')} active={route().current('member.index')}>Member</NavLink>
+                            <NavLink href={route('member.index')} active={route().current('member.index')}>Perajin Batik</NavLink>
                             <NavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</NavLink>
                         </div>
                     </div>
@@ -89,7 +89,7 @@ const Navbar = ({ user }) => {
                     <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>Dashboard</ResponsiveNavLink>
                     {/* <ResponsiveNavLink href={route('fish.index')} active={route().current('fish.index')}>Product</ResponsiveNavLink> */}
                     <ResponsiveNavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</ResponsiveNavLink>
-                    <ResponsiveNavLink href={route('member.index')} active={route().current('member.index')}>Member</ResponsiveNavLink>
+                    <ResponsiveNavLink href={route('member.index')} active={route().current('member.index')}>Perajin Batik</ResponsiveNavLink>
                     <ResponsiveNavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</ResponsiveNavLink>
                 </div>
 

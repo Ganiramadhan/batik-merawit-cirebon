@@ -4,10 +4,14 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
-import { FiEdit, FiTrash, FiDownload, FiPlus, FiX, FiSave , FiUser, FiTag,FiSearch, FiXCircle   } from "react-icons/fi";
+import * as XLSX from 'xlsx';
+import { FiEdit, FiTrash, FiPrinter , FiPlus, FiX, FiSave , FiUser, FiTag,FiSearch, FiXCircle,FiLoader, FiUpload } from "react-icons/fi";
 import btmcLogo from '../../../images/BTMC.png';
 import igiLogo from '../../../images/IGI.png';
 import defaultLogo from '../../../images/newBTMC.png';
+import qrBackground from '../../../images/background.jpg';
+
+
 
 
 
@@ -17,11 +21,14 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     const [isEditMode, setIsEditMode] = useState(false);
     const [imageName, setImageName] = useState('');
     const [customName, setCustomName] = useState('');
+    const [customMaterial, setCustomMaterial] = useState("");
+    const [customColorMaterial, setCustomColorMaterial] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const [newBatik, setNewBatik] = useState({
         code_batik: '',
         name: '',
-        price: '',
-        stock: '',
+        quality: '',
         description: '',
         image: null,
         motif_creator: '',
@@ -29,11 +36,47 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         production_year: '',
         materials: '',
         color_materials: '',
-        coordinate: '',
         member_id: '',
-
-
     });
+
+    const exportBatikData = () => {
+        setIsSubmitting(true); 
+    
+        setTimeout(() => {
+            // Data yang akan diekspor (tanpa kolom tertentu)
+            const dataToExport = batikData.map(({ created_at, updated_at, image, member, ...rest }) => rest);
+    
+            const dataWithHeaders = dataToExport.map(item => ({
+                "Kode Batik": item.code_batik,
+                "Nama Batik": item.name,
+                "Kualitas": item.quality,
+                "Deskripsi": item.description,
+                "Pembuat Motif": item.motif_creator,
+                "Tukang Penembok": item.bricklayer_name,
+                "Tahun Produksi": item.production_year,
+                "Bahan Baku Kain": item.materials,
+                "Bahan Pewarna": item.color_materials,
+            }));
+    
+            const worksheet = XLSX.utils.json_to_sheet(dataWithHeaders);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Batik");
+    
+            // Ekspor file Excel
+            XLSX.writeFile(workbook, "data_batik.xlsx");
+    
+            setIsSubmitting(false); 
+            Swal.fire({
+                icon: "success",
+                title: "Berhasil Ekspor",
+                text: "Data batik berhasil diekspor!",
+            });
+        }, 1000); 
+    };
+    
+    
+
+
     const [imagePreview, setImagePreview] = useState(null);
     const [filteredBatikData, setFilteredBatikData] = useState(batikData);
 
@@ -50,7 +93,25 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         }));
     };
 
+    const memberOptions = members.map((member) => ({
+        value: member.id.toString(),
+        label: member.name,
+    }));
     
+
+    const materialOptions = [
+        { value: "Kain Katun Primisima", label: "Kain Katun Primisima" },
+        { value: "Kain Katun Kereta Kencana", label: "Kain Katun Kereta Kencana" },
+        { value: "custom", label: "Custom" },
+    ];
+
+
+    const colorMaterialsOption = [
+        { value: "Sintetis", label: "Sintetis" },
+        { value: "Pewarna Alami", label: "Pewarna Alami" },
+        { value: "custom", label: "Custom" },
+    ];
+
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -81,99 +142,123 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     
 
 
+    const generateCodeBatik = () => {
+        const motif = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+        const kualitas = newBatik.quality || 'SB';
+        const pemilik = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+        const pembuat = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+        const penembok = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+        const tahun = newBatik.production_year ? newBatik.production_year.slice(-2) : new Date().getFullYear().toString().slice(-2);
+    
+        return `M${motif}${kualitas}${pemilik}${pembuat}${penembok}${tahun}`;
+    };
+    
+    
+    const setCustomField = (fieldName, customField, defaultFieldValue) => {
+        if (customField) {
+            return customField;
+        } else if (newBatik[fieldName] && newBatik[fieldName] !== 'custom') {
+            return newBatik[fieldName];
+        }
+        return defaultFieldValue;
+    };
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
     
-        try {
-            const cleanedPrice = newBatik.price && typeof newBatik.price === 'string' && newBatik.price.trim() !== ''
-            ? parseFloat(newBatik.price.replace(/\./g, ""))
-            : 0;
-        
-        
-            // Validasi harga apakah valid (angka dan lebih besar dari 0)
-            if (isNaN(cleanedPrice) || cleanedPrice <= 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Validasi',
-                    text: 'Harga harus berupa angka valid dan lebih besar dari 0.',
-                });
-                return;
-            }
+        if (isSubmitting) return;
     
-            // Validasi nama batik
-            if (!newBatik.name || newBatik.name.trim() === '') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Validasi',
-                    text: 'Nama batik tidak boleh kosong.',
-                });
-                return;
-            }
+        setIsSubmitting(true); 
     
-            const formData = new FormData();
-            formData.append("price", cleanedPrice);
-            formData.append("code_batik", `M${newBatik.code_batik}`);
-    
-            Object.keys(newBatik).forEach((key) => {
-                if (newBatik[key]) {
-                    formData.append(key, newBatik[key]);
-                }
+        // Validasi Nama
+        if (!newBatik.name || newBatik.name.trim() === '') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validasi',
+                text: 'Nama batik tidak boleh kosong.',
             });
+            setIsSubmitting(false);
+            return;
+        }
     
-            // Jika nama batik adalah 'custom', gunakan customName
-            if (newBatik.name === 'custom' && customName) {
-                formData.set("name", customName);
+        // Validasi Gambar hanya pada saat tambah (bukan edit)
+        if (!isEditMode && (!newBatik.image || newBatik.image === '')) { 
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validasi',
+                text: 'Gambar batik tidak boleh kosong.',
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    
+        const generatedCode = generateCodeBatik();
+        const formData = new FormData();
+    
+        formData.append("code_batik", generatedCode);
+    
+        // Handle custom fields
+        formData.set("color_materials", setCustomField("color_materials", customColorMaterial, newBatik.color_materials));
+        formData.set("name", setCustomField("name", customName, newBatik.name));
+        formData.set(
+            "materials",
+            newBatik.materials === 'custom' ? customMaterial : newBatik.materials
+        );
+    
+        if (newBatik.image && !isEditMode) {
+            formData.append('image', newBatik.image); 
+        }
+    
+        // Append other fields
+        Object.keys(newBatik).forEach((key) => {
+            if (newBatik[key] && !['name', 'materials', 'color_materials', 'image'].includes(key)) {
+                formData.append(key, newBatik[key]);
             }
+        });
     
+        try {
             let response;
-    
-            // Jika mode edit, lakukan update
             if (isEditMode && newBatik.id) {
                 response = await axios.post(`/batik/${newBatik.id}`, formData);
+                // console.log('Response Data:', response);
                 const updatedImage = response.data.batik.image;
-    
-                setFilteredBatikData((prevData) => {
-                    return prevData.map((item) =>
+                setFilteredBatikData((prevData) =>
+                    prevData.map((item) =>
                         item.id === newBatik.id
                             ? {
                                 ...item,
                                 ...newBatik,
-                                price: cleanedPrice,
+                                code_batik: generatedCode,
                                 image: updatedImage || item.image,
+                                name: newBatik.name === 'custom' ? customName : newBatik.name,
+                                materials: newBatik.materials === 'custom' ? customMaterial : newBatik.materials,
+                                color_materials: newBatik.color_materials === 'custom' ? customColorMaterial : newBatik.color_materials,
                             }
                             : item
-                    );
-                });
-    
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: response.data.message,
-                });
+                    )
+                );
             } else {
-                // Jika mode tambah, lakukan insert
                 response = await axios.post('/batik', formData);
-                setFilteredBatikData((prevData) => {
-                    const newData = [
-                        ...prevData,
-                        {
-                            ...response.data.batik,
-                            price: cleanedPrice,
-                            image: response.data.batik.image || '',
-                            qr_code: response.data.batik.qr_code || {},
-                        },
-                    ];
-                    return newData;
-                });
-    
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: response.data.message,
-                });
+                setFilteredBatikData((prevData) => [
+                    ...prevData,
+                    {
+                        ...response.data.batik,
+                        code_batik: generatedCode,
+                        image: response.data.batik.image || '',
+                        qr_code: response.data.batik.qr_code || {},
+                        name: response.data.batik.name === 'custom' ? customName : newBatik.name,
+                        materials: newBatik.materials === 'custom' ? customMaterial : newBatik.materials,
+                        color_materials: newBatik.color_materials === 'custom' ? customColorMaterial : newBatik.color_materials,
+                    }
+                ]);
             }
     
-            // Menutup modal dan mereset form
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.data.message,
+            });
+    
             setIsModalOpen(false);
             resetForm();
         } catch (error) {
@@ -193,6 +278,72 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                     text: 'Gagal mengirimkan data ke server.',
                 });
             }
+        } finally {
+            setIsSubmitting(false); 
+        }
+    };
+    
+    
+    
+    const handleMaterialChange = (selectedOption) => {
+        const isCustomMaterial = selectedOption.value === 'custom';
+        setNewBatik((prev) => ({
+            ...prev,
+            materials: isCustomMaterial ? 'custom' : selectedOption.value,
+        }));
+    
+        if (isCustomMaterial) {
+            setCustomMaterial(newBatik.materials === 'custom' ? customMaterial : '');
+        } else {
+            setCustomMaterial('');
+        }
+    };
+
+
+    
+    const handleColorMaterialsChange = (selectedOption) => {
+        const isCustomColorMaterials = selectedOption.value === 'custom';
+    
+        setNewBatik((prev) => ({
+            ...prev,
+            color_materials: selectedOption.value, 
+        }));
+    
+        setCustomColorMaterial(isCustomColorMaterials ? '' : '');
+    };
+    
+    
+    
+
+    
+    
+    const handleSelectChange = (selectedOption) => {
+        if (selectedOption.value === 'custom') {
+            setNewBatik((prev) => ({
+                ...prev,
+                name: 'custom', 
+                description: '',
+            }));
+            setCustomName('');
+        } else {
+            const selectedBatik = batikDescription.find(
+                (batik) => batik.name === selectedOption.label
+            );
+            if (selectedBatik) {
+                setNewBatik((prev) => ({
+                    ...prev,
+                    name: selectedOption.label,
+                    description: selectedBatik.description,
+                }));
+            } else {
+                // Jika nama motif tidak ada di batikDescription, set sebagai 'custom'
+                setNewBatik((prev) => ({
+                    ...prev,
+                    name: 'custom', 
+                    description: '',
+                }));
+                setCustomName('');
+            }
         }
     };
 
@@ -200,52 +351,106 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     const handleEditClick = (id) => {
         const selectedBatik = filteredBatikData.find((item) => item.id === id);
         if (selectedBatik) {
-            setNewBatik({
-                id: selectedBatik.id,
-                code_batik: selectedBatik.code_batik || '',
-                name: selectedBatik.name || '',
-                price: selectedBatik.price ? selectedBatik.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : '', 
-                stock: selectedBatik.stock || '',
-                description: selectedBatik.description || '',
-                image: '', 
-                motif_creator: selectedBatik.motif_creator || '',
-                bricklayer_name: selectedBatik.bricklayer_name || '',
-                production_year: selectedBatik.production_year || '',
-                materials: selectedBatik.materials || '',
-                color_materials: selectedBatik.color_materials || '',
-                coordinate: selectedBatik.coordinate || '',
-                member_id: selectedBatik.member_id || '', 
-            });
+            // console.log("Selected Batik:", selectedBatik);
     
-            const selectedMember = members.find((member) => 
-                parseInt(member.id) === parseInt(selectedBatik.member_id)
+            const selectedBatikDescription = batikDescription.find(
+                (batik) => batik.name === selectedBatik.name
             );
     
+            // Daftar predefined materials
+            const predefinedMaterials = [
+                "Kain Katun Primisima",
+                "Kain Katun Kereta Kencana",
+            ];
+    
+            // Daftar predefined color materials
+            const predefinedColorMaterials = [
+                "Sintetis",
+                "Pewarna Alami",
+            ];
+    
+            // Tentukan apakah materials adalah custom
+            const isCustomMaterial = !predefinedMaterials.includes(selectedBatik.materials);
+            const isCustomColorMaterial = !predefinedColorMaterials.includes(
+                selectedBatik.color_materials
+            );
+    
+            // Set newBatik state
+            setNewBatik({
+                id: selectedBatik.id,
+                name: selectedBatik.name || "",
+                description:
+                    selectedBatik.name === "custom"
+                        ? selectedBatik.description || ""
+                        : selectedBatikDescription
+                        ? selectedBatikDescription.description
+                        : "",
+                image: "",
+                motif_creator: selectedBatik.motif_creator || "",
+                bricklayer_name: selectedBatik.bricklayer_name || "",
+                production_year: selectedBatik.production_year || "",
+                materials: isCustomMaterial ? "custom" : selectedBatik.materials,
+                color_materials: isCustomColorMaterial
+                    ? "custom"
+                    : selectedBatik.color_materials, 
+                member_id: selectedBatik.member_id || "",
+                quality: selectedBatik.quality || "",
+            });
+    
+            // Handle custom material input
+            if (isCustomMaterial) {
+                setCustomMaterial(selectedBatik.materials || "");
+            } else {
+                setCustomMaterial("");
+            }
+    
+            // Handle custom color material input
+            if (isCustomColorMaterial) {
+                setCustomColorMaterial(selectedBatik.color_materials || ""); 
+            } else {
+                setCustomColorMaterial("");
+            }
+    
+            // Jika tidak ada di batikDescription, set name menjadi 'custom' dan description kosong
+            if (!selectedBatikDescription) {
+                setNewBatik((prev) => ({
+                    ...prev,
+                    name: "custom",
+                    description: selectedBatik.description || "",
+                }));
+                setCustomName(selectedBatik.name || "");
+            } else {
+                setCustomName("");
+            }
+    
+            // Handle member data
+            const selectedMember = members.find(
+                (member) => parseInt(member.id) === parseInt(selectedBatik.member_id)
+            );
             if (selectedMember) {
                 setNewBatik((prev) => ({
                     ...prev,
-                    store_name: selectedMember.store_name || '',
-                    email: selectedMember.email || '',
-                    member_address: selectedMember.address || '',
+                    store_name: selectedMember.store_name || "",
+                    email: selectedMember.email || "",
+                    member_address: selectedMember.address || "",
                 }));
-            } else {
-                console.warn('Member not found for the given member_id.');
             }
-
+    
+            // Set image preview
             if (selectedBatik.image) {
-                setImagePreview(`/storage/${selectedBatik.image}`); 
+                setImagePreview(`/storage/${selectedBatik.image}`);
             } else {
                 setImagePreview(null);
             }
     
-            setImageName(selectedBatik.image ? selectedBatik.image.split('/').pop() : '');
-    
+            setImageName(
+                selectedBatik.image ? selectedBatik.image.split("/").pop() : ""
+            );
             setIsModalOpen(true);
             setIsEditMode(true);
-        } else {
-            console.warn('Batik not found for the given ID.');
         }
     };
+    
     
 
 
@@ -293,14 +498,12 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             email: "",
             code_batik: "",
             name: "",
-            price: "",
-            stock: "",
+            quality: "",
             motif_creator: "",
             bricklayer_name: "",
             production_year: "",
             materials: "",
             color_materials: "",
-            coordinate: "",
             description: "",
             image: null,
         }); 
@@ -315,8 +518,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         setNewBatik({
             code_batik: '',
             name: '',
-            price: '',
-            stock: '',
+            quality: '',
             description: '',
             image: null,
             motif_createor: '',
@@ -324,56 +526,27 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             production_year: '',
             materials: '',
             color_materials: '',
-            coordinate: '',
             member_id: '',
 
         });
         setImagePreview(null);
     };
 
-    const handleSelectChange = (selectedOption) => {
-        if (selectedOption.value === 'custom') {
-            setNewBatik((prev) => ({
-                ...prev,
-                name: 'custom',
-                description: '', 
-            }));
-        } else {
-            const selectedBatik = batikDescription.find(
-                (batik) => batik.name === selectedOption.label
-            );
-            setNewBatik((prev) => ({
-                ...prev,
-                name: selectedOption.label,
-                description: selectedBatik ? selectedBatik.description : '', 
-            }));
-        }
-    };
-    
-    
+
+
     const options = batikDescription.map((desc) => ({
         value: desc.name,
         label: desc.name,
     }));
     
     // Add a custom option to allow user input
-    options.push({ value: 'custom', label: 'Custom (Input Manual)' });
+    options.push({ value: 'custom', label: 'Custom' });
 
 
     const formatToRupiah  = (value) => {
         value = value.replace(/\D/g, "");
         
         return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-    
-
-    const handlePriceChange = (e) => {
-        const formattedPrice = e.target.value.replace(/\D/g, ""); 
-        const priceWithRupiah = formatToRupiah(formattedPrice); 
-        setNewBatik((prev) => ({
-            ...prev,
-            price: priceWithRupiah, 
-        }));
     };
     
     
@@ -384,34 +557,51 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
             <div className="py-6 bg-gray-50">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-                    <div className="flex flex-col sm:flex-row items-center justify-between mb-6 bg-white p-6 rounded-lg shadow-md">
-                        <div className="relative w-full sm:w-1/4"> 
-                            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                            <input
-                                type="text"
-                                placeholder="Cari batik..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="p-3 pl-10 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black text-lg"
-                                >
-                                    <FiXCircle />
-                                </button>
-                            )}
-                        </div>
+                    
+                <div className="flex flex-col sm:flex-row items-center justify-between mb-6 bg-white p-6 rounded-lg shadow-md">
+                    <div className="relative w-full sm:w-1/4">
+                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
+                        <input
+                            type="text"
+                            placeholder="Cari batik..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="p-3 pl-10 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black text-lg"
+                            >
+                                <FiXCircle />
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-4 mt-4 sm:mt-0 sm:ml-4">
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="mt-4 sm:mt-0 sm:ml-4 bg-blue-600 text-white py-2 px-5 rounded-lg flex items-center hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
+                            className="bg-blue-600 text-white py-2 px-5 rounded-lg flex items-center hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
                         >
                             <FiPlus className="mr-2 text-lg" />
                             <span className="text-sm font-medium">Tambah Batik</span>
                         </button>
+                        <button
+                            onClick={exportBatikData}
+                            className={`bg-blue-600 text-white py-2 px-3 rounded-lg flex items-center justify-center hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out ${
+                                isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <FiLoader className="animate-spin text-lg" />
+                            ) : (
+                                <FiPrinter className="text-lg" />
+                            )}
+                    </button>
                     </div>
-                    {/* Grid untuk Card */}
+                </div>
+
+                   {/* Grid untuk Card */}
                     {filteredData.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {filteredData.map((batik, index) => (
@@ -420,9 +610,24 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     className="relative p-6 bg-white border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                                 >
 
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-lg font-semibold text-gray-800 truncate">{batik.name}</h3>
+                                    {/* Quality Badge */}
+                                    {batik.quality && (
+                                        <span className="absolute top-2 right-2 text-xs font-semibold text-white bg-red-500 px-3 py-1 rounded-full">
+                                            {batik.quality}
+                                        </span>
+                                    )}
+
+                                    <div className="flex items-center justify-center w-full">
+                                        <h3 className="text-lg font-semibold text-gray-800 truncate text-center" title={batik.name === 'custom' ? customName : batik.name}>
+                                            {batik.name === 'custom' ? customName : (batik.name.length > 17 ? `${batik.name.slice(0, 17)}...` : batik.name)}
+                                        </h3>
                                     </div>
+                                    {/* <p className="text-gray-600 text-sm">
+                                        <span className="block max-w-xs font-bold" title={batik.description}>
+                                            {batik.member?.name || ''}
+                                        </span>
+                                    </p> */}
+                                    
                                     <p className="text-gray-600 text-sm">
                                         <span className="font-bold">Deskripsi:</span> 
                                         <span className="block max-w-xs" title={batik.description}>
@@ -430,27 +635,11 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         </span>
                                     </p>
                                     
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-semibold text-gray-800 truncate">
-                                            Rp {parseInt(batik.price).toLocaleString('id-ID')}
-                                        </h3>
-                                    </div>
-
-
                                     <div className="flex items-center justify-between mb-2 mt-4">
-                                        <div className="text-sm font-bold text-gray-800">
-                                            {batik.code_batik.split('').map((char, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="inline-block w-6 h-6 mr-1 text-center bg-gray-200 rounded-full"
-                                                >
-                                                    {char}
-                                                </span>
-                                            ))}
+                                        <div className="text-lg font-bold text-gray-800">
+                                            M-{batik.code_batik.slice(1).match(/.{1,2}/g).join('-')}
                                         </div>
-
                                     </div>
-
                                     <div className="relative">
                                         {batik.image && (
                                             <img
@@ -460,7 +649,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                             />
                                         )}
                                     </div>
-
                                     <div className="mt-4 flex justify-between items-center gap-2">
                                         {/* Tombol Edit */}
                                         <button
@@ -482,115 +670,158 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                             <FiTrash className="mr-2 text-base" />
                                             <span className="text-sm font-medium">Hapus</span>
                                         </button>
-
                                         {batik.qr_code && (
-                                        <button
-                                            onClick={async () => {
-                                            try {
-                                                const canvas = document.createElement("canvas");
-                                                const ctx = canvas.getContext("2d");
+                                            <button
+                                                onClick={async () => {
+                                                    const scale = 10; // Resolusi tinggi
+                                                    const width = 250; // Lebar canvas
+                                                    const height = 350; // Tinggi canvas
+                                                    const logoSize = 45; // Ukuran logo
+                                                    const qrSize = 100; // Ukuran QR Code
+                                                    const lineSpacing = 16; // Jarak antar baris teks
+                                                    const boxSpacing = 5; // Jarak antar kotak kode
 
-                                                // Set ukuran canvas
-                                                canvas.width = 250;
-                                                canvas.height = 350;
+                                                    try {
+                                                        const canvas = document.createElement("canvas");
+                                                        const ctx = canvas.getContext("2d");
 
-                                                // Background putih
-                                                ctx.fillStyle = "#ffffff";
-                                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                                        // Setup resolusi canvas
+                                                        canvas.width = width * scale;
+                                                        canvas.height = height * scale;
+                                                        ctx.scale(scale, scale);
+                                                        ctx.imageSmoothingEnabled = false;
 
-                                                // Fungsi memuat gambar
-                                                const loadImage = (src) => {
-                                                return new Promise((resolve, reject) => {
-                                                    const img = new Image();
-                                                    img.crossOrigin = "anonymous";
-                                                    img.src = src;
-                                                    img.onload = () => resolve(img);
-                                                    img.onerror = () => reject(`Gagal memuat gambar dari ${src}`);
-                                                });
-                                                };
+                                                        const loadImage = (src) => {
+                                                            return new Promise((resolve, reject) => {
+                                                                const img = new Image();
+                                                                img.crossOrigin = "anonymous";
+                                                                img.src = src;
+                                                                img.onload = () => resolve(img);
+                                                                img.onerror = () => reject(`Gagal memuat gambar: ${src}`);
+                                                            });
+                                                        };
 
-                                                // Ambil logo dinamis
-                                                const memberLogo = batik.member?.image ? `/storage/${batik.member.image}` : defaultLogo;
-                                                console.log('Member Logo:', memberLogo);
+                                                        // Sumber gambar
+                                                        const memberLogo = batik.member?.image
+                                                            ? `/storage/${batik.member.image}`
+                                                            : defaultLogo;
 
-                                                // Muat semua gambar secara paralel
-                                                const [btmcImage, igiImage, memberImage, qrImage] = await Promise.all([
-                                                loadImage(btmcLogo),
-                                                loadImage(igiLogo),
-                                                loadImage(memberLogo),
-                                                loadImage(`data:image/svg+xml;base64,${batik.qr_code}`),
-                                                ]);
+                                                        // Muat gambar
+                                                        const [btmcImage, igiImage, memberImage, qrImage, background] = await Promise.all([
+                                                            loadImage(btmcLogo),
+                                                            loadImage(igiLogo),
+                                                            loadImage(memberLogo),
+                                                            loadImage(`data:image/svg+xml;base64,${batik.qr_code}`),
+                                                            loadImage(qrBackground),
+                                                        ]);
 
-                                                // Gambar logo
-                                                const logoSize = 40;
-                                                ctx.drawImage(btmcImage, 55, 20, logoSize, logoSize);
-                                                ctx.drawImage(igiImage, 105, 20, logoSize, logoSize);
-                                                ctx.drawImage(memberImage, 155, 20, logoSize, logoSize);
+                                                        // Gambar background
+                                                        ctx.drawImage(background, 0, 0, width, height);
 
-                                                // Gambar QR Code
-                                                const qrSize = 100;
-                                                ctx.drawImage(qrImage, (canvas.width - qrSize) / 2, 100, qrSize, qrSize);
+                                                        // Gambar logo
+                                                        ctx.drawImage(btmcImage, 55, 20, logoSize, logoSize);
+                                                        ctx.drawImage(igiImage, 105, 20, logoSize, logoSize);
+                                                        ctx.drawImage(memberImage, 155, 20, logoSize, logoSize);
 
-                                                // Tambahkan teks informasi
-                                                ctx.font = "12px Arial";
-                                                ctx.fillStyle = "#333333";
-                                                ctx.textAlign = "left";
+                                                        // Gambar QR Code
+                                                        ctx.drawImage(qrImage, (width - qrSize) / 2, 100, qrSize, qrSize);
 
-                                                const textStartY = 240;
-                                                const lineSpacing = 18;
+                                                        // Tambahkan teks informasi (rata kiri)
+                                                        ctx.font = `${1.1 * scale}px Arial`;
+                                                        ctx.fillStyle = "#333333";
+                                                        ctx.textAlign = "left"; // Rata kiri
 
-                                                ctx.fillText(`Nama Motif: ${batik.name}`, 20, textStartY);
-                                                ctx.fillText(`Jenis Produk: ${batik.materials}`, 20, textStartY + lineSpacing);
-                                                ctx.fillText(`Harga: Rp ${batik.price.toLocaleString("id-ID")}`, 20, textStartY + lineSpacing * 2);
+                                                        const textStartX = 20;
+                                                        const textStartY = 230; // Geser ke atas
 
-                                                ctx.textAlign = "center";
-                                                ctx.fillText("Kode Sertifikasi IG Merawit", canvas.width / 2, canvas.height - 30);
-                                                ctx.font = "10px Arial";
-                                                ctx.fillText(batik.code_batik, canvas.width / 2, canvas.height - 15);
+                                                        ctx.fillText(
+                                                            `Nama Motif: ${batik.name || "-"}`,
+                                                            textStartX,
+                                                            textStartY
+                                                        );
+                                                        ctx.fillText(
+                                                            `Jenis Produk: ${batik.materials || "-"}`,
+                                                            textStartX,
+                                                            textStartY + lineSpacing
+                                                        );
+                                                        ctx.fillText(
+                                                            `Harga: Rp.`,
+                                                            textStartX,
+                                                            textStartY + lineSpacing * 2
+                                                        );
 
-                                                // Tambahkan border
-                                                ctx.strokeStyle = "#cccccc";
-                                                ctx.lineWidth = 2;
-                                                ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+                                                        // Tambahkan Kode Produk IG Batik Tulis Merawit (rata tengah dan per huruf di kotak)
+                                                        const certificationText = "Kode Produk IG Batik Tulis Merawit";
+                                                        let codeText = batik.code_batik || "-";
 
-                                                // Unduh gambar sebagai PNG
-                                                canvas.toBlob(
-                                                (blob) => {
-                                                    if (blob) {
-                                                    const url = URL.createObjectURL(blob);
-                                                    const link = document.createElement("a");
-                                                    link.href = url;
-                                                    link.download = `batik-${batik.code_batik}-qr.png`;
-                                                    document.body.appendChild(link);
-                                                    link.click();
-                                                    link.remove();
-                                                    URL.revokeObjectURL(url);
-                                                    } else {
-                                                    throw new Error("Gagal mengonversi canvas ke blob.");
+                                                        // Ubah format kode menjadi "M" + pasangan huruf/angka
+                                                        codeText = `${codeText.replace(/[^a-zA-Z0-9]/g, "")}`;
+                                                        const formattedCode = [codeText.charAt(0), ...codeText.slice(1).match(/.{1,2}/g)];
+
+                                                        // Teks "Kode Produk IG Batik Tulis Merawit" rata tengah
+                                                        ctx.textAlign = "center";
+                                                        ctx.fillText(
+                                                            certificationText,
+                                                            width / 2,
+                                                            textStartY + lineSpacing * 4
+                                                        );
+
+                                                        // Gambar kode sertifikasi dalam kotak
+                                                        const boxSize = 20; // Ukuran kotak
+                                                        const totalWidth = formattedCode.length * boxSize + (formattedCode.length - 1) * boxSpacing;
+                                                        const startX = (width - totalWidth) / 2;
+                                                        const startY = textStartY + lineSpacing * 4.5; // Geser ke atas
+
+                                                        formattedCode.forEach((char, i) => {
+                                                            const x = startX + i * (boxSize + boxSpacing);
+
+                                                            // Gambar kotak
+                                                            ctx.strokeStyle = "#000";
+                                                            ctx.lineWidth = 1;
+                                                            ctx.strokeRect(x, startY, boxSize, boxSize);
+
+                                                            // Gambar huruf di dalam kotak
+                                                            ctx.fillStyle = "#000";
+                                                            ctx.textAlign = "center";
+                                                            ctx.textBaseline = "middle";
+                                                            ctx.fillText(char, x + boxSize / 2, startY + boxSize / 2);
+                                                        });
+
+                                                        // Tambahkan border
+                                                        ctx.strokeStyle = "#cccccc";
+                                                        ctx.lineWidth = 2;
+                                                        ctx.strokeRect(10, 10, width - 20, height - 20);
+
+                                                        // Unduh gambar
+                                                        canvas.toBlob((blob) => {
+                                                            if (blob) {
+                                                                const url = URL.createObjectURL(blob);
+                                                                const link = document.createElement("a");
+                                                                link.href = url;
+                                                                link.download = `batik-${batik.code_batik || "qr"}.png`;
+                                                                link.click();
+                                                                URL.revokeObjectURL(url);
+                                                            }
+                                                        }, "image/png");
+                                                    } catch (error) {
+                                                        console.error("Error:", error);
+                                                        Swal.fire({
+                                                            icon: "error",
+                                                            title: "Error",
+                                                            text: "Gagal mengunduh gambar. Silakan coba lagi.",
+                                                        });
                                                     }
-                                                },
-                                                "image/png",
-                                                1.0
-                                                );
-                                            } catch (error) {
-                                                console.error("Error:", error);
-                                                Swal.fire({
-                                                icon: "error",
-                                                title: "Error",
-                                                text: "Gagal mengunduh QR Code. Silakan coba lagi.",
-                                                });
-                                            }
-                                            }}
-                                            className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
-                                            aria-label="Download QR Code"
-                                        >
-                                            <FiDownload className="text-base" />
-                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                            Download
-                                            </span>
-                                        </button>
+                                                }}
+                                                className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
+                                                aria-label="Print Qr COde"
+                                            >
+                                                {/* Print Qr COde */}
+                                                <FiPrinter className="text-base" />
+                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                Print
+                                                </span>
+                                            </button>
                                         )}
-
 
                                     </div>
                                 </div>
@@ -601,6 +832,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                             <p>Data tidak ditemukan.</p>
                         </div>
                     )}
+
                 </div>
             </div>
 
@@ -642,40 +874,33 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {/* Nama Member */}
-                                <div>
-                                    <label htmlFor="member_id" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nama Anggota MPIG-BTMC
-                                    </label>
-                                    <select
-                                        name="member_id"
-                                        required
-                                        value={newBatik.member_id || ""}
-                                        onChange={(e) => {
-                                            const selectedMember = members.find(
-                                                (member) => member.id.toString() === e.target.value
-                                            );
-                                            handleInputChange(e);
-                                            if (selectedMember) {
+                               {/* Nama Member */}
+                                    <div>
+                                        <label htmlFor="member_id" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nama Anggota MPIG-BTMC
+                                        </label>
+                                        <Select
+                                            id="member_id"
+                                            name="member_id"
+                                            value={memberOptions.find((option) => option.value === newBatik.member_id?.toString()) || null}  
+                                            onChange={(selectedOption) => {
+                                                const selectedMember = members.find(
+                                                    (member) => member.id.toString() === selectedOption.value
+                                                );
                                                 setNewBatik((prev) => ({
                                                     ...prev,
-                                                    store_name: selectedMember.store_name,
-                                                    member_address: selectedMember.address,
-                                                    email: selectedMember.email,
+                                                    member_id: selectedOption.value,
+                                                    store_name: selectedMember ? selectedMember.store_name : '',
+                                                    member_address: selectedMember ? selectedMember.address : '',
+                                                    email: selectedMember ? selectedMember.email : '',
                                                 }));
-                                            }
-                                        }}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Pilih Anggota</option>
-                                        {members.map((member) => (
-                                            <option key={member.id} value={member.id}>
-                                                {member.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
+                                            }}
+                                            options={memberOptions}
+                                            className="w-full"
+                                            placeholder="Pilih Anggota"
+                                            required
+                                        />
+                                    </div>
                                 {/* Nama Merk (Toko) */}
                                 <div>
                                     <label htmlFor="store_name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -743,7 +968,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                {/* Batik Fields */}
-                                <div>
+                                {/* <div>
                                     <label htmlFor="code_batik" className="block text-sm font-medium text-gray-700 mb-2">
                                         Kode Batik Merawit
                                     </label>
@@ -756,41 +981,67 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     />
-
-                                </div>
-
+                                </div> */}
                                 <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nama Motif
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <Select
-                                            id="name"
-                                            name="name"
-                                            value={options.find((option) => option.value === newBatik.name)}
-                                            onChange={handleSelectChange}
-                                            options={[
-                                                ...options
-                                                    .filter((option) => option.value !== 'custom')
-                                                    .sort((a, b) => a.label.localeCompare(b.label)),
-                                                options.find((option) => option.value === 'custom'),
-                                            ]}
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Nama Motif
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <Select
+                                        id="name"
+                                        name="name"
+                                        value={options.find((option) => option.value === newBatik.name)}
+                                        onChange={handleSelectChange}
+                                        options={[
+                                            ...options
+                                                .filter((option) => option.value !== 'custom')
+                                                .sort((a, b) => a.label.localeCompare(b.label)),
+                                            options.find((option) => option.value === 'custom'),
+                                        ]}
+                                        required
+                                        className="w-full"
+                                    />
+                                    {newBatik.name === 'custom' && (
+                                        <input
+                                            type="text"
+                                            id="customName"
+                                            name="customName"
+                                            value={customName}
+                                            onChange={(e) => setCustomName(e.target.value)}
+                                            placeholder="Masukkan Nama Batik"
+                                            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             required
-                                            className="w-full"
                                         />
-                                        {newBatik.name === 'custom' && (
-                                            <input
-                                                type="text"
-                                                id="customName"
-                                                name="customName"
-                                                value={customName}
-                                                onChange={(e) => setCustomName(e.target.value)}
-                                                placeholder="Masukkan Nama Batik"
-                                                className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                required
-                                            />
-                                        )}
-                                    </div>
+                                    )}
+                                </div>
+                            </div>
+
+
+                                 {/* Kualitas Batik */}
+                                <div>
+                                    <label htmlFor="quality" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Kualitas Batik
+                                    </label>
+                                    <select
+                                        id="quality"
+                                        name="quality"
+                                        value={newBatik.quality || ""}
+                                        onChange={(e) =>
+                                            setNewBatik((prev) => ({
+                                                ...prev,
+                                                quality: e.target.value,
+                                            }))
+                                        }
+                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="" disabled>
+                                            Pilih Kualitas Batik
+                                        </option>
+                                        <option value="SB">Sangat Bagus (SB)</option>
+                                        <option value="BR">Bagus Rapih (BR)</option>
+                                        <option value="CR">Cukup Rapih (SR)</option>
+                                    </select>
                                 </div>
 
                                 <div>
@@ -808,7 +1059,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     />
                                 </div>
 
-                                    <div>
+                                    {/* <div>
                                     <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
                                         Harga
                                     </label>
@@ -821,11 +1072,11 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     />
-                                </div>
+                                </div> */}
 
                                 <div>
                                     <label htmlFor="motif_creator" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nama Pembuat Motif
+                                        Pembuat Motif
                                     </label>
                                     <input
                                         type="text"
@@ -837,7 +1088,6 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         required
                                     />
                                 </div>
-
                                 <div>
                                     <label htmlFor="bricklayer_name" className="block text-sm font-medium text-gray-700 mb-2">
                                         Tukang Penembok
@@ -856,36 +1106,74 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     <label htmlFor="materials" className="block text-sm font-medium text-gray-700 mb-2">
                                         Bahan Baku Kain
                                     </label>
-                                    <select
+                                    <div className="flex items-center gap-2">
+                                    <Select
                                         id="materials"
                                         name="materials"
-                                        value={newBatik.materials || ""}
-                                        onChange={handleInputChange}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={materialOptions.find((option) => option.value === newBatik.materials)}
+                                        onChange={handleMaterialChange}
+                                        options={[
+                                            ...materialOptions
+                                                .filter((option) => option.value !== 'custom')
+                                                .sort((a, b) => a.label.localeCompare(b.label)),
+                                            materialOptions.find((option) => option.value === 'custom'),
+                                        ]}
                                         required
-                                    >
-                                        <option value="">Pilih Bahan Baku Kain</option>
-                                        <option value="Kain Katun Primisima">Kain Katun Primisima</option>
-                                        <option value="Kain Katun Kereta Kencana Sintetis">Kain Katun Kereta Kencana Sintetis</option>
-                                    </select>
+                                        className="w-full"
+                                    />
+                                    {newBatik.materials === 'custom' && (
+                                        <input
+                                            type="text"
+                                            id="customMaterial"
+                                            name="customMaterial"
+                                            value={customMaterial}
+                                            onChange={(e) => setCustomMaterial(e.target.value)}
+                                            placeholder="Bahan Baku Kain"
+                                            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    )}
+                                    </div>
                                 </div>
                                 <div>
-                                    <label htmlFor="color_materials" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label
+                                        htmlFor="color_materials"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
                                         Bahan Pewarna
                                     </label>
-                                    <select
-                                        id="color_materials"
-                                        name="color_materials"
-                                        value={newBatik.color_materials || ""}
-                                        onChange={handleInputChange}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    >
-                                        <option value="">Pilih Bahan Pewarna</option>
-                                        <option value="Sintetis">Sintetis</option>
-                                        <option value="Pewarna Alami">Pewarna Alami</option>
-                                    </select>
+                                    <div className="flex items-center gap-2">
+                                        <Select
+                                            id="color_materials"
+                                            name="color_materials"
+                                            value={colorMaterialsOption.find(
+                                                (option) => option.value === newBatik.color_materials
+                                            )}
+                                            onChange={handleColorMaterialsChange}
+                                            options={[
+                                                ...colorMaterialsOption
+                                                    .filter((option) => option.value !== 'custom')
+                                                    .sort((a, b) => a.label.localeCompare(b.label)),
+                                                colorMaterialsOption.find((option) => option.value === 'custom'),
+                                            ]}
+                                            required
+                                            className="w-full"
+                                        />
+                                        {newBatik.color_materials === 'custom' && (
+                                            <input
+                                                type="text"
+                                                id="customColorMaterial"
+                                                name="customColorMaterial"
+                                                value={customColorMaterial}
+                                                onChange={(e) => setCustomColorMaterial(e.target.value)}
+                                                placeholder="Masukkan bahan pewarna khusus"
+                                                className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        )}
+                                    </div>
                                 </div>
+
                                  {/* Gambar */}
                                 <div>
                                     <label htmlFor="image" className="block text-sm font-semibold mb-2">
@@ -928,23 +1216,41 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
                                 </div>
                             </div>
-
                             {/* Buttons */}
                             <div className="flex justify-end mt-6 space-x-4">
+                                {/* Cancel Button */}
                                 <button
                                     type="button"
                                     className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition-colors"
                                     onClick={handleCancel}
+                                    disabled={isSubmitting}
                                 >
-                                    <FiX className="mr-2" /> Cancel
+                                    <FiX className="mr-2" /> {/* Cancel Icon */}
+                                    Cancel
                                 </button>
+
+                                {/* Save/Update Button */}
                                 <button
                                     type="submit"
-                                    className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition-colors"
+                                    className={`py-2 px-4 rounded-lg flex items-center transition-colors ${
+                                        isSubmitting ? 'bg-blue-300 text-gray-100' : 'bg-blue-500 text-white hover:bg-blue-600'
+                                    }`}
+                                    disabled={isSubmitting}
                                 >
-                                    <FiSave className="mr-2" /> {isEditMode ? "Update" : "Simpan"}
+                                    {isSubmitting ? (
+                                        <>
+                                            <FiLoader className="mr-2 animate-spin" /> {/* Loading Spinner */}
+                                            {isEditMode ? "Updating..." : "Submitting..."}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiSave className="mr-2" /> {/* Save/Update Icon */}
+                                            {isEditMode ? "Update" : "Simpan"}
+                                        </>
+                                    )}
                                 </button>
                             </div>
+
                         </form>
                     </div>
                 </div>

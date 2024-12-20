@@ -43,6 +43,7 @@ class TransactionController extends Controller
     {
         $validatedData = $request->validate([
             'batik_id' => 'required|numeric',
+            'price' => 'required|numeric',
             'transaction_date' => 'required',
             'notes' => 'nullable|string',
         ]);
@@ -93,6 +94,7 @@ class TransactionController extends Controller
         {
             $validated = $request->validate([
                 'batik_id' => 'required|max:255',
+                'price' => 'required|numeric',
                 'transaction_date' => 'required',
                 'notes' => 'nullable|string',
             ]);
