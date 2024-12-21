@@ -36,8 +36,19 @@ export default function MemberData({ user, title, members }) {
     const [filteredMemberData, setFilteredMemberData] = useState(members);
 
     const exportMemberData = () => {
-        setIsSubmitting(true); 
-        
+        setIsSubmitting(true);
+    
+        // Check if members data is empty
+        if (members.length === 0) {
+            setIsSubmitting(false);
+            Swal.fire({
+                icon: "warning",
+                title: "Data Kosong",
+                text: "Tidak ada data yang dapat diekspor.",
+            });
+            return;
+        }
+    
         setTimeout(() => {
             const dataToExport = members.map(({ created_at, updated_at, image, ...rest }) => ({
                 "Nama": rest.name,
@@ -49,22 +60,25 @@ export default function MemberData({ user, title, members }) {
                 "Nomor Telepon": rest.phone_number,
                 "Alamat": rest.address,
             }));
-        
+    
+            // Create worksheet from the data
             const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Data Member");
-        
-            // Ekspor file Excel
+    
+            // Export the Excel file
             XLSX.writeFile(workbook, "data_member.xlsx");
-        
-            setIsSubmitting(false); 
+    
+            setIsSubmitting(false);
             Swal.fire({
                 icon: "success",
                 title: "Berhasil Ekspor",
                 text: "Data telah berhasil diekspor.",
             });
-        }, 1000); 
+        }, 1000);
     };
+    
     
 
     const handleImageChange = (e) => {

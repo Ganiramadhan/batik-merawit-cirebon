@@ -38,31 +38,41 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         color_materials: '',
         member_id: '',
     });
-
     const exportBatikData = () => {
         setIsSubmitting(true); 
     
+        // Check if batikData is empty
+        if (batikData.length === 0) {
+            setIsSubmitting(false);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data Kosong',
+                text: 'Tidak ada data batik yang dapat diekspor.',
+            });
+            return; 
+        }
+    
         setTimeout(() => {
-            // Data yang akan diekspor (tanpa kolom tertentu)
             const dataToExport = batikData.map(({ created_at, updated_at, image, member, ...rest }) => rest);
     
+            // Prepare the data with headers
             const dataWithHeaders = dataToExport.map(item => ({
-                "Kode Batik": item.code_batik,
-                "Nama Batik": item.name,
-                "Kualitas": item.quality,
-                "Deskripsi": item.description,
-                "Pembuat Motif": item.motif_creator,
-                "Tukang Penembok": item.bricklayer_name,
-                "Tahun Produksi": item.production_year,
-                "Bahan Baku Kain": item.materials,
-                "Bahan Pewarna": item.color_materials,
+                "Kode Batik": item.code_batik || '-',
+                "Nama Batik": item.name || '-',
+                "Kualitas": item.quality || '-',
+                "Deskripsi": item.description || '-',
+                "Pembuat Motif": item.motif_creator || '-',
+                "Tukang Penembok": item.bricklayer_name || '-',
+                "Tahun Produksi": item.production_year || '-',
+                "Bahan Baku Kain": item.materials || '-',
+                "Bahan Pewarna": item.color_materials || '-',
             }));
     
             const worksheet = XLSX.utils.json_to_sheet(dataWithHeaders);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Data Batik");
     
-            // Ekspor file Excel
+            // Export to Excel file
             XLSX.writeFile(workbook, "data_batik.xlsx");
     
             setIsSubmitting(false); 

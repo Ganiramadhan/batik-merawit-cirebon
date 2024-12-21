@@ -52,7 +52,9 @@ export default function Transaction({ user, title, transactions, batiks }) {
     const handleExportClick = () => {
         setIsFilterModalOpen(true); 
     };
+
     const exportTransactionData = () => {
+        // Filter transactions by date range
         const filtered = transactions.filter(transaction => {
             const transactionDate = new Date(transaction.transaction_date);
             const startDate = new Date(filterStartDate);
@@ -64,9 +66,20 @@ export default function Transaction({ user, title, transactions, batiks }) {
             return transactionDate >= startDate && transactionDate <= endDate;
         });
     
-        // Format data yang sudah difilter untuk ekspor
+        // Check if there are any transactions in the filtered data
+        if (filtered.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data Kosong',
+                text: 'Tidak ada transaksi yang sesuai dengan filter tanggal.',
+            });
+            return; 
+        }
+    
+        // Format the filtered data for export
         const formattedData = filtered.map(transaction => {
-            const batik = batiks.find(b => b.id === transaction.batik_id);
+            const batik = batiks.find(batik => batik.id === transaction.batik_id);
+            
             return {
                 'Kode Batik': batik?.code_batik || '-',
                 'Nama Batik': batik?.name || '-',
@@ -76,7 +89,7 @@ export default function Transaction({ user, title, transactions, batiks }) {
             };
         });
     
-        // Ekspor data ke file Excel
+        // Export formatted data to Excel
         exportToExcel(formattedData);
     
         Swal.fire({
@@ -84,10 +97,11 @@ export default function Transaction({ user, title, transactions, batiks }) {
             title: 'Ekspor Berhasil!',
             text: 'Data transaksi telah berhasil diekspor.',
             confirmButtonText: 'OK',
-            timer: 3000, // Alert otomatis ditutup setelah 3 detik
+            timer: 3000, 
             timerProgressBar: true,
         });
     
+        // Reset filters and close modal
         setIsFilterModalOpen(false);
         resetDateFilters();
     };
@@ -492,10 +506,10 @@ export default function Transaction({ user, title, transactions, batiks }) {
                                                     {String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
-                                                    {transaction.batik.code_batik || '-'}
+                                                    {transaction?.batik?.code_batik || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
-                                                    {transaction.batik.name || '-'}
+                                                    {transaction?.batik?.name || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-800">
                                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(

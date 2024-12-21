@@ -20,9 +20,12 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
+        if (!view()->exists('Auth/Register')) {
+            abort(404);
+        }
+    
         return Inertia::render('Auth/Register');
     }
-
     /**
      * Handle an incoming registration request.
      *

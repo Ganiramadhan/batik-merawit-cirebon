@@ -69,13 +69,13 @@ export default function Login({ status }) {
 
                 <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center text-sm text-gray-600">
-                        <span>Don't have an account?</span>
+                        {/* <span>Don't have an account?</span>
                         <Link
                             href={route('register')}
                             className="underline ml-1 text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
                             Register
-                        </Link>
+                        </Link> */}
                     </div>
                     <PrimaryButton className="ms-4" disabled={processing}>
                         Log in
