@@ -10,6 +10,6 @@ class BatikDescription extends Model
     use HasFactory;
 
     protected $table = 'batik_description';
-    protected $fillable = ['id', 'name', 'description'];
+    protected $fillable = ['id','batik_number', 'name', 'description'];
 
 }

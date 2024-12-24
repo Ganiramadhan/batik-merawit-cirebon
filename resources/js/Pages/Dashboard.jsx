@@ -40,15 +40,16 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
     //     console.log('Batik Data:', batikData);
     // }, [auth, totalBatik, totalMembers, totalTransactions, transactions, batikData]);
     
-        // Group and count batik data by member
-        const memberBatikData = batikData.reduce((acc, data) => {
-            const memberName = data.member.name;
-            if (!acc[memberName]) {
-                acc[memberName] = 0;
-            }
-            acc[memberName] += 1; 
-            return acc;
-        }, {});
+      // Group and count batik data by member
+    const memberBatikData = batikData.reduce((acc, data) => {
+        const memberName = data.member?.name || 'Unknown Member';
+        if (!acc[memberName]) {
+            acc[memberName] = 0;
+        }
+        acc[memberName] += 1;
+        return acc;
+    }, {});
+
 
         // Prepare labels and data
         const labels = Object.keys(memberBatikData);
@@ -210,8 +211,8 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
                                     </span>
                                     <FaStore className="text-3xl mr-4" style={{ color: COLORS.batik.border }} />
                                     <div>
-                                        <h3 className="text-2xl font-semibold text-gray-800">Total Batik</h3>
-                                        <p className="text-gray-500">Manage and view all batik products.</p>
+                                        <h3 className="text-2xl font-semibold text-gray-800">Data Batik Merawit</h3>
+                                        <p className="text-gray-500">Kelola dan lihat semua produk batik yang tersedia.</p>
                                     </div>
                                 </Link>
 
@@ -228,13 +229,13 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
                                     </span>
                                     <FaUsers className="text-3xl mr-4" style={{ color: COLORS.members.border }} />
                                     <div>
-                                        <h3 className="text-2xl font-semibold text-gray-800">Total Members</h3>
-                                        <p className="text-gray-500">Manage and view all members of the platform.</p>
+                                        <h3 className="text-2xl font-semibold text-gray-800">Data Perajin Batik</h3>
+                                        <p className="text-gray-500">Kelola dan lihat semua perajin batik.</p>
                                     </div>
                                 </Link>
 
                                 {/* Total Transactions */}
-                                <Link
+                                {/* <Link
                                     href="/transaction"
                                     className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200 p-6 flex items-center relative transition-transform transform hover:scale-105 hover:shadow-xl cursor-pointer"
                                 >
@@ -249,7 +250,7 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
                                         <h3 className="text-2xl font-semibold text-gray-800">Total Transactions</h3>
                                         <p className="text-gray-500">View and manage all completed transactions.</p>
                                     </div>
-                                </Link>
+                                </Link> */}
                             </div>
                         )}
 
@@ -259,20 +260,20 @@ export default function Dashboard({ auth, totalBatik, totalMembers, totalTransac
                                 <h3 className="text-lg font-semibold mb-4">Dashboard Overview</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                                     {/* Sales Chart */}
-                                    <div className="bg-white shadow-md rounded-lg border border-gray-200 p-4">
+                                    {/* <div className="bg-white shadow-md rounded-lg border border-gray-200 p-4">
                                         <div className="flex items-center mb-4">
                                             <FaChartLine className="text-2xl text-gray-500 mr-4" />
                                             <h4 className="text-xl font-semibold">Sales Overview</h4>
                                         </div>
                                         <Line data={salesOverviewData} options={options} />
-                                        </div>
+                                        </div> */}
 
                                     {/* User Statistics */}
                                     <div className="bg-white shadow-md rounded-lg border border-gray-200 p-4">
                                         <div className="flex items-center mb-4">
                                             <FaUsers className="text-2xl text-gray-500 mr-4" />
-                                            <h4 className="text-xl font-semibold">User Statistics</h4>
-                                        </div>
+                                            <h4 className="text-xl font-semibold">Batik Ownership Statistics</h4>
+                                            </div>
                                         <Bar data={userStatisticsData} />
                                     </div>
                                 </div>

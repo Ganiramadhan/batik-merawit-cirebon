@@ -6,8 +6,7 @@ import axios from 'axios';
 import * as XLSX from "xlsx"; 
 import { 
     FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo, 
-    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle, FiLoader, FiPrinter
-} from 'react-icons/fi';
+    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle, FiLoader, FiPrinter, FiUserCheck} from 'react-icons/fi';
 
 
 export default function MemberData({ user, title, members }) {
@@ -22,6 +21,7 @@ export default function MemberData({ user, title, members }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageName, setImageName] = useState('');
     const [newMember, setNewMember] = useState({
+        member_number: '',
         name: '',
         place_of_birth: '',
         gender: '',
@@ -51,8 +51,9 @@ export default function MemberData({ user, title, members }) {
     
         setTimeout(() => {
             const dataToExport = members.map(({ created_at, updated_at, image, ...rest }) => ({
+                "Nomor Anggota": rest.member_number,
                 "Nama": rest.name,
-                "Tempat Lahir": rest.place_of_birth,
+                "Tempat Tanggal Lahir": rest.place_of_birth,
                 "Jenis Kelamin": rest.gender,
                 "Jumlah Karyawan": rest.employees,
                 "Nama Toko": rest.store_name,
@@ -100,100 +101,107 @@ export default function MemberData({ user, title, members }) {
     const handleEditClick = (id) => {
         const member = filteredMemberData.find((member) => member.id === id);
         if (member) {
+            const [place, date] = member.place_of_birth ? member.place_of_birth.split(',') : ['', ''];
+            
             setNewMember({
                 ...member,
+                place_of_birth_temp: place?.trim() || '', 
+                place_of_birth_date: date?.trim() || '', 
                 gender: member.gender || '',
                 imagePreview: member.image ? `/storage/app/public/${member.image}` : '',  
             });
             setImagePreview(member.image ? `/storage/app/public/${member.image}` : ''); 
             setIsEditMode(true);
             setIsModalOpen(true);
+        } else {
+            console.error('Member not found');
         }
     };
     
     
+    
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-    // Validation for image when not in edit mode
-    if (!isEditMode && !newMember.image) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Validasi',
-            text: 'Gambar tidak boleh kosong.',
-        });
-        return;
-    }
+        // Validation for image when not in edit mode
+        if (!isEditMode && !newMember.image) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validasi',
+                text: 'Gambar tidak boleh kosong.',
+            });
+            return;
+        }
 
-    // Prepare form data
-    const formData = new FormData();
-    for (const key in newMember) {
-        formData.append(key, newMember[key]);
-    }
+        // Prepare form data
+        const formData = new FormData();
+        for (const key in newMember) {
+            formData.append(key, newMember[key]);
+        }
 
-    setIsSubmitting(true); 
+        setIsSubmitting(true); 
 
-    try {
-        let response;
+        try {
+            let response;
 
-        // Edit mode (update)
-        if (isEditMode) {
-            response = await axios.post(`/member/${newMember.id}`, formData);
+            // Edit mode (update)
+            if (isEditMode) {
+                response = await axios.post(`/member/${newMember.id}`, formData);
 
-            if (response.status === 200 || response.status === 204) {
-                const updatedImage = response?.data?.image_url;
-                setFilteredMemberData((prevData) => {
-                    return prevData.map((item) =>
-                        item.id === newMember.id
-                            ? {
-                                  ...item,
-                                  ...newMember,
-                                  image: updatedImage || item.image,
-                              }
-                            : item
-                    );
-                });
+                if (response.status === 200 || response.status === 204) {
+                    const updatedImage = response?.data?.image_url;
+                    setFilteredMemberData((prevData) => {
+                        return prevData.map((item) =>
+                            item.id === newMember.id
+                                ? {
+                                    ...item,
+                                    ...newMember,
+                                    image: updatedImage || item.image,
+                                }
+                                : item
+                        );
+                    });
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.data.message,
+                    });
+                } else {
+                    throw new Error('Failed to update member');
+                }
+            } else {
+                // Add new member
+                response = await axios.post('/member', formData);
+                setFilteredMemberData((prevData) => [
+                    ...prevData,
+                    {
+                        ...response.data.member,
+                        image: response.data.member.image || '',
+                    },
+                ]);
 
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil',
                     text: response.data.message,
                 });
-            } else {
-                throw new Error('Failed to update member');
             }
-        } else {
-            // Add new member
-            response = await axios.post('/member', formData);
-            setFilteredMemberData((prevData) => [
-                ...prevData,
-                {
-                    ...response.data.member,
-                    image: response.data.member.image || '',
-                },
-            ]);
 
+            setIsModalOpen(false); 
+            resetForm(); 
+        } catch (error) {
+            console.error('Error:', error);
             Swal.fire({
-                icon: 'success',
-                title: 'Berhasil',
-                text: response.data.message,
+                icon: 'error',
+                title: 'Terjadi Kesalahan',
+                text: 'Tidak dapat memproses permintaan.',
             });
+        } finally {
+            setIsSubmitting(false); 
         }
-
-        setIsModalOpen(false); // Close modal after submission
-        resetForm(); // Reset form state
-    } catch (error) {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Terjadi Kesalahan',
-            text: 'Tidak dapat memproses permintaan.',
-        });
-    } finally {
-        setIsSubmitting(false); // End the submission process
-    }
-};
+    };
 
 
 
@@ -264,10 +272,10 @@ const handleSubmit = async (e) => {
     const handleDetailClick = (id) => {
         const memberData = filteredData.find((member) => member.id === id);
         if (memberData) {
-          setSelectedMember(memberData);
-          setIsDetailModalOpen(true);
+            setSelectedMember(memberData);
+            setIsDetailModalOpen(true);
         } else {
-          console.log('Data tidak ditemukan');
+            console.log('Data tidak ditemukan');
         }
     };
 
@@ -283,6 +291,7 @@ const handleSubmit = async (e) => {
 
     const resetForm = () => {
         setNewMember({
+            member_number: '',
             name: '',
             place_of_birth: '',
             gender: '',
@@ -368,6 +377,7 @@ const handleSubmit = async (e) => {
                             <thead className="bg-blue-500 text-white">
                                 <tr>
                                     <th className="px-6 py-4 text-sm font-semibold text-left">#</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nomor MPIG-BTMC</th>
                                     <th className="px-6 py-4 text-sm font-semibold text-left">Anggota MPIG-BTMC</th>
                                     <th className="px-6 py-4 text-sm font-semibold text-left">Nama Toko</th>
                                     <th className="px-6 py-4 text-sm font-semibold text-left">Nomor Telepon</th>
@@ -381,8 +391,9 @@ const handleSubmit = async (e) => {
                                     currentData.map((member, index) => (
                                     <tr key={member.id} className="border-b hover:bg-gray-100 transition-all">
                                         <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                                        {String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
+                                        {String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
                                         </td>
+                                        <td className="px-6 py-4 text-sm text-gray-800">{member.member_number}</td>
                                         <td className="px-6 py-4 text-sm text-gray-800">{member.name}</td>
                                         <td className="px-6 py-4 text-sm text-gray-800">{member.store_name}</td>
                                         <td className="px-6 py-4 text-sm text-gray-800">{member.phone_number}</td>
@@ -585,6 +596,14 @@ const handleSubmit = async (e) => {
                         )}
 
                         <div className="flex items-center space-x-3">
+                            <FiUserCheck className="text-gray-700 text-lg" />
+                            <p>
+                                <strong>Nomor Anggota MPIG-BTMC:</strong>{' '}
+                                <span className="text-gray-900">{selectedMember.member_number}</span>
+                            </p>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
                             <FiUser className="text-gray-700 text-lg" />
                             <p>
                                 <strong>Nama Anggota MPIG-BTMC:</strong>{' '}
@@ -615,7 +634,7 @@ const handleSubmit = async (e) => {
                         <div className="flex items-center space-x-3">
                             <FiMapPin className="text-gray-700 text-lg" />
                             <p>
-                                <strong>Tempat Lahir:</strong>{' '}
+                                <strong>Tempat Tanggal Lahir:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.place_of_birth}</span>
                             </p>
                         </div>
@@ -653,187 +672,215 @@ const handleSubmit = async (e) => {
 
 
 
-            {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-3xl transition-transform transform scale-95 overflow-y-auto max-h-[90vh]">
-                        
-                        {/* Main Header */}
-                        <div className="flex items-center justify-center mb-8 pt-2"> 
-                            <h1 className="text-2xl font-black text-gray-700">
-                                FORMULIR DATA ANGGOTA BATIK TULIS MERAWIT
-                            </h1>
+        {isModalOpen && (
+            <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
+                <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-3xl transition-transform transform scale-95 overflow-y-auto max-h-[90vh]">
+                    
+                    {/* Main Header */}
+                    <div className="flex items-center justify-center mb-8 pt-2"> 
+                        <h1 className="text-2xl font-black text-gray-700">
+                            FORMULIR DATA ANGGOTA BATIK TULIS MERAWIT
+                        </h1>
+                    </div>
+
+                    {/* Close Icon */}
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+                    >
+                        <FiX className="text-2xl" />
+                    </button>
+
+                    {/* Header Modal */}
+                    <div className="flex items-center justify-between border-b pb-3 mb-4">
+                        <div className="flex items-center space-x-2">
+                            <FiUser className="text-2xl text-blue-500" />
+                            <h3 className="text-xl font-semibold text-gray-800">
+                                {isEditMode ? 'Edit Data Anggota' : 'Tambah Data Anggota'}
+                            </h3>
                         </div>
+                    </div>
 
-                        {/* Close Icon */}
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
-                        >
-                            <FiX className="text-2xl" />
-                        </button>
-
-                        {/* Header Modal */}
-                        <div className="flex items-center justify-between border-b pb-3 mb-4">
-                            <div className="flex items-center space-x-2">
-                                <FiUser className="text-2xl text-blue-500" />
-                                <h3 className="text-xl font-semibold text-gray-800">
-                                    {isEditMode ? 'Edit Data Anggota' : 'Tambah Data Anggota'}
-                                </h3>
+                    {/* Form */}
+                    <form onSubmit={handleSubmit}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Nomor Member */}
+                            {/* <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Anggota MPIG-BTMC</label>
+                                <input
+                                    type="text"
+                                    value={newMember.member_number || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, member_number: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div> */}
+                            {/* Nama Member */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Anggota MPIG-BTMC</label>
+                                <input
+                                    type="text"
+                                    value={newMember.name || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
                             </div>
-                            <button
-                                type="button"
-                                className="text-gray-400 hover:text-gray-600 transition"
-                                onClick={handleCancel}
-                            >
-                            </button>
-                        </div>
 
-                        {/* Form */}
-                        <form onSubmit={handleSubmit}>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Nama Member */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Anggota MPIG-BTMC</label>
+                           {/* Tempat Tanggal Lahir */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Tempat Tanggal Lahir</label>
+                                <div className="flex gap-4">
+                                    {/* Input untuk Tempat Lahir */}
                                     <input
                                         type="text"
-                                        value={newMember.name || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Tempat Lahir"
+                                        value={newMember.place_of_birth_temp || ''}
+                                        onChange={(e) =>
+                                            setNewMember((prev) => ({
+                                                ...prev,
+                                                place_of_birth_temp: e.target.value,
+                                                place_of_birth: `${e.target.value}, ${prev.place_of_birth_date || ''}`.trim(),
+                                            }))
+                                        }
+                                        className="p-3 border border-gray-300 rounded-lg w-1/2 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
-                                </div>
-
-                                {/* Tempat Tanggal Lahir */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tempat Tanggal Lahir</label>
+                                    {/* Input untuk Tanggal Lahir */}
                                     <input
-                                        type="text"
-                                        value={newMember.place_of_birth || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, place_of_birth: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                        type="date"
+                                        value={newMember.place_of_birth_date || ''}
+                                        onChange={(e) =>
+                                            setNewMember((prev) => ({
+                                                ...prev,
+                                                place_of_birth_date: e.target.value,
+                                                place_of_birth: `${prev.place_of_birth_temp || ''}, ${e.target.value}`.trim(),
+                                            }))
+                                        }
+                                        className="p-3 border border-gray-300 rounded-lg w-1/2 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
                                 </div>
+                            </div>
 
-                                {/* Jenis Kelamin */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
-                                    <select
-                                        value={newMember.gender || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="">Pilih Jenis Kelamin</option>
-                                        <option value="Laki-laki">Laki-laki</option>
-                                        <option value="Perempuan">Perempuan</option>
-                                    </select>
-                                </div>
+                            {/* Jenis Kelamin */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
+                                <select
+                                    value={newMember.gender || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                >
+                                    <option value="">Pilih Jenis Kelamin</option>
+                                    <option value="Laki-laki">Laki-laki</option>
+                                    <option value="Perempuan">Perempuan</option>
+                                </select>
+                            </div>
 
-                                {/* Nama Merk (Toko) */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Merk (Toko)</label>
-                                    <input
-                                        type="text"
-                                        value={newMember.store_name || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, store_name: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
+                            {/* Nama Merk (Toko) */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Merk (Toko)</label>
+                                <input
+                                    type="text"
+                                    value={newMember.store_name || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, store_name: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
 
-                                {/* Email */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={newMember.email || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
+                            {/* Email */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={newMember.email || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
 
-                                {/* Nomor Hp */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon</label>
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        value={newMember.phone_number || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, phone_number: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
+                            {/* Nomor Hp */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={newMember.phone_number || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, phone_number: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
 
-                                {/* Jumlah Pekerja */}
-                                <div className="flex flex-col">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pekerja</label>
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        value={newMember.employees || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, employees: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
+                            {/* Jumlah Pekerja */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pekerja</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={newMember.employees || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, employees: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
 
-                                {/* Alamat */}
-                                <div className="flex flex-col">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Toko</label>
-                                    <textarea
-                                        value={newMember.address || ''}
-                                        onChange={(e) => setNewMember({ ...newMember, address: e.target.value })}
-                                        className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                        rows="3"
-                                        required
-                                    ></textarea>
-                                </div>
+                            {/* Alamat */}
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Toko</label>
+                                <textarea
+                                    value={newMember.address || ''}
+                                    onChange={(e) => setNewMember({ ...newMember, address: e.target.value })}
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
+                                    rows="3"
+                                    required
+                                ></textarea>
+                            </div>
 
                             {/* Image Toko */}
                             <div>
-                                <label htmlFor="image" className="block text-sm font-semibold mb-2">
-                                    Logo Toko
-                                </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
                                 <input
                                     type="file"
                                     id="image"
                                     name="image"
                                     onChange={handleImageChange}
-                                    className="p-2 border border-gray-300 rounded-lg w-full mb-4"
+                                    className="p-2 border border-gray-300 rounded-lg w-full mb-2"
                                 />
                                 {imagePreview || newMember.imagePreview ? ( 
-                                    <div className="mt-2 flex justify-center">
+                                    <div className="flex justify-center">
                                         <img
                                             src={imagePreview || newMember.imagePreview} 
                                             alt="Preview"
-                                            className="w-32 h-32 object-cover rounded-lg" 
+                                            className="w-48 h-24 object-cover rounded-lg"
                                         />
                                     </div>
                                 ) : null}
                             </div>
+                        </div>
 
-                            </div>
-                            <div className="flex justify-end mt-4 space-x-3">
+
+                        <div className="flex justify-end mt-4 space-x-3">
                             {/* Cancel Button */}
-                                <button
-                                    type="button"
-                                    className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
-                                    onClick={() => {
-                                        resetForm();  
-                                        setIsModalOpen(false); 
-                                    }}
-                                >
-                                    <FiXCircle className="mr-2" />
-                                    Cancel
-                                </button>
-                              {/* Submit Button */}
+                            <button
+                                type="button"
+                                className="bg-gray-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-gray-600 transition"
+                                onClick={() => {
+                                    resetForm();  
+                                    setIsModalOpen(false); 
+                                }}
+                            >
+                                <FiXCircle className="mr-2" />
+                                Cancel
+                            </button>
+                            {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={isSubmitting} // Disable button while submitting
+                                disabled={isSubmitting}
                                 className="bg-blue-500 text-white py-2 px-4 rounded-lg flex items-center hover:bg-blue-600 transition disabled:bg-gray-300"
                             >
                                 {isSubmitting ? (
@@ -853,11 +900,12 @@ const handleSubmit = async (e) => {
                                     </>
                                 )}
                             </button>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
-            )}
+            </div>
+        )}
+
 
 
 

@@ -65,13 +65,13 @@ Route::prefix('member')->name('member.')->group(function () {
 
 
 // Transaction
-Route::prefix('transaction')->name('transaction.')->group(function () {
-    Route::get('/', [TransactionController::class, 'index'])->name('index');
-    Route::post('/', [TransactionController::class, 'store'])->name('store');
-    Route::post('{transaction}', [TransactionController ::class, 'update'])->name('update');
-    Route::delete('/{transaction}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
+// Route::prefix('transaction')->name('transaction.')->group(function () {
+//     Route::get('/', [TransactionController::class, 'index'])->name('index');
+//     Route::post('/', [TransactionController::class, 'store'])->name('store');
+//     Route::post('{transaction}', [TransactionController ::class, 'update'])->name('update');
+//     Route::delete('/{transaction}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
 
-});
+// });
 
 
 // Scan for detail batik 

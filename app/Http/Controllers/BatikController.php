@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BackLayer;
 use App\Models\Batik;
 use App\Models\BatikDescription;
 use App\Models\Member;
+use App\Models\MotifCreator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -24,15 +26,19 @@ class BatikController extends Controller
         $batikData = Batik::with('member')->get();
         $members = Member::all(); 
         $batikDescription = BatikDescription::all();
+        $backLayers = BackLayer::all();
+        $motifCreators = MotifCreator::all();
 
         // print_r($batikDescription);die(); 
     
         return Inertia::render('Batik/Index', [
-            'title' => 'Daftar Produk Batik',
+            'title' => 'Daftar Produk Batik Merawit',
             'user' => $user,
             'batikData' => $batikData,
             'members' => $members,
             'batikDescription' => $batikDescription,
+            'backLayers' => $backLayers,
+            'motifCreators' => $motifCreators,
         ]);
     }
     
@@ -65,17 +71,10 @@ class BatikController extends Controller
 
         public function store(Request $request)
         {
-
-            $request->merge([
-                'price' => str_replace('.', '', $request->input('price'))
-            ]);
-
-            // dd($request->all());
             $validatedData = $request->validate([
                 'code_batik' => 'required|unique:batiks|max:255',
                 'name' => 'required|string|max:255',
                 'quality' => 'required|string|max:255',
-                // 'price' => 'required|numeric',
                 'description' => 'nullable|string',
                 'image' => 'nullable|image',
                 'member_id' => 'nullable|exists:members,id',
@@ -86,14 +85,12 @@ class BatikController extends Controller
                 'color_materials' => 'nullable|string|max:255',
             ]);
         
-         // Generate QR Code in SVG format
+            // Generate QR Code in SVG format
             $url = url("/scan-batik/{$validatedData['code_batik']}");
             $qrCodeSvg = QrCode::format('svg')->size(200)->generate($url);
         
             // Base64 encode the SVG QR code
-            $qrCodeBase64 = base64_encode($qrCodeSvg);
-        
-            $validatedData['qr_code'] = $qrCodeBase64;
+            $validatedData['qr_code'] = base64_encode($qrCodeSvg);
         
             // Upload image if present
             if ($request->hasFile('image')) {
@@ -102,14 +99,20 @@ class BatikController extends Controller
         
             // Save the batik data to the database
             $batik = Batik::create($validatedData);
-            return response()->json([
-                'message' => 'Data batik berhasil ditambahkan
-                .',
-                'batik' => $batik,
-            ]);
         
+            // Fetch related member data if member_id is provided
+            $member = null;
+            if ($validatedData['member_id']) {
+                $member = Member::find($validatedData['member_id']);
+            }
+        
+            return response()->json([
+                'message' => 'Data batik berhasil ditambahkan.',
+                'batik' => $batik,
+                'member' => $member, 
+            ]);
         }
-
+        
         
 
     /**
@@ -119,10 +122,8 @@ class BatikController extends Controller
 
         public function update(Request $request, $id)
         {
-            $request->merge([
-                'price' => str_replace('.', '', $request->input('price'))
-            ]);
-        
+
+            // dd($request->all());
             // Validasi data
             $validated = $request->validate([
                 'code_batik' => 'required|string|unique:batiks,code_batik,' . $id,
@@ -159,16 +160,23 @@ class BatikController extends Controller
                 $qrCodeBase64 = base64_encode($qrCodeSvg);
                 $validated['qr_code'] = $qrCodeBase64;
             } else {
-                // Tetap gunakan QR Code lama jika `code_batik` tidak berubah
                 $validated['qr_code'] = $batik->qr_code;
             }
+            
         
             // Lakukan update pada database
             $batik->update($validated);
+
+            // Fetch related member data if member_id is provided
+            $member = null;
+            if ($validated['member_id']) {
+                $member = Member::find($validated['member_id']);
+            }
         
             return response()->json([
                 'message' => 'Data batik berhasil diperbarui.',
                 'batik' => $batik,
+                'member' => $member, 
             ]);
         }
         
@@ -209,8 +217,8 @@ class BatikController extends Controller
             abort(404, 'QR Code tidak ditemukan');
         }
     
-        // Generate QR Code sebagai file PNG
-        $qrCodeContent = $batik->code_batik;
+        // Generate QR Code dengan URL
+        $qrCodeContent = url("/scan-batik/{$batik->code_batik}");
         $qrCode = QrCode::format('png')->size(200)->generate($qrCodeContent);
     
         // Set header untuk file unduhan
@@ -221,6 +229,7 @@ class BatikController extends Controller
     
         return Response::make($qrCode, 200, $headers);
     }
+    
     
 
     

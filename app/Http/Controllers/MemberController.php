@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 
 
@@ -20,7 +22,7 @@ class MemberController extends Controller
         $user = Auth::user();
         $members = Member::all();
         return Inertia::render('Member/Index', [
-            'title' => 'Daftar Perjain Batik',
+            'title' => 'Daftar Perajin Batik Tulis Merawit Cirebon',
             'user' => $user,
             'members' => $members,
         ]);
@@ -37,34 +39,44 @@ class MemberController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request) {
-        // Validate input data
+    public function store(Request $request)
+    {
+        $lastMember = Member::latest('id')->first(); 
+        $lastNumber = $lastMember ? (int) Str::afterLast($lastMember->member_number, '-') : 0; 
+        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT); 
+        $generatedNumber = 'KMPIG-BTMC-' . $newNumber; 
 
+        // Validasi input
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'store_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'address' => 'required|string|max:500', 
-            'place_of_birth' => 'required|string|max:100', 
-            'gender' => 'required|string|max:100', 
-            'employees' => 'required|string|max:100', 
+            'address' => 'required|string|max:500',
+            'place_of_birth' => 'required|string|max:100',
+            'gender' => 'required|string|max:100',
+            'employees' => 'required|integer|min:0', 
             'image' => 'nullable|image|max:2048',
         ]);
 
-        // Upload image if present
+        // Tambahkan nomor anggota yang dihasilkan secara otomatis
+        $validatedData['member_number'] = $generatedNumber;
+
+        // Upload gambar jika ada
         if ($request->hasFile('image')) {
             $validatedData['image'] = $request->file('image')->store('images', 'public');
         }
-    
+
+        // Simpan data anggota
         $member = Member::create($validatedData);
-    
+
+        // Kembalikan respons JSON
         return response()->json([
             'message' => 'Data Member berhasil ditambahkan.',
             'member' => $member,
-        ]);
+        ], 201);
     }
-    
+
     
 
     /**
@@ -89,6 +101,7 @@ class MemberController extends Controller
     public function update(Request $request, $id)
         {
             $validated = $request->validate([
+                'member_number' => 'required|string|max:255',
                 'name' => 'required|string|max:255',
                 'store_name' => 'required|string|max:255',  
                 'email' => 'required|email|max:255',  
@@ -120,21 +133,34 @@ class MemberController extends Controller
             ]);
         }
 
-
+        public function updateMemberNumbers()
+        {
+            $members = Member::orderBy('id')->get();
+        
+            foreach ($members as $index => $member) {
+                $newNumber = 'KMPIG-BTMC-' . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+                
+                $member->update(['member_number' => $newNumber]);
+            }
+        }
+        
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Member $member) {
-        if ($member->image) {
+    public function destroy(Member $member)
+    {
+        if ($member->image && Storage::disk('public')->exists($member->image)) {
             Storage::disk('public')->delete($member->image);
         }
-
         $member->delete();
-    
+
+        // $this->updateMemberNumbers();
+
         return response()->json([
             'success' => true,
             'message' => 'Anggota berhasil dihapus!',
         ]);
     }
+
 }
