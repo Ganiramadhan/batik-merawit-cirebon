@@ -12,6 +12,8 @@ use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\IsAdmin;
+use Inertia\Inertia;
+
 
 
 
@@ -83,11 +85,18 @@ Route::get('/scan-batik/{code_batik}', [QrCodeController::class, 'show']);
 
 
 
+// Rute untuk pengguna yang sudah terautentikasi dan terverifikasi
 Route::get('/', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-    
+// Rute untuk pengguna yang belum terautentikasi (rute publik)
+Route::get('/welcome', function () {
+    return Inertia::render('Welcome');
+});
+
+
+
 // User Route
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
