@@ -10,6 +10,7 @@ use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\RajaOngkirController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\IsAdmin;
 use Inertia\Inertia;
@@ -43,7 +44,7 @@ use Inertia\Inertia;
 
 
 // New Batik 
-Route::prefix('batik')->name('batik.')->group(function () {
+Route::prefix('batik')->name('batik.')->middleware('auth')->group(function () {
     Route::get('/', [BatikController::class, 'index'])->name('index');
     Route::post('/', [BatikController::class, 'store'])->name('store');
     Route::post('{batik}', [BatikController::class, 'update'])->name('update');
@@ -52,18 +53,17 @@ Route::prefix('batik')->name('batik.')->group(function () {
 
     // Show Qr Scann 
     Route::get('/{code}', [BatikController::class, 'detail'])->name('batik.detail');
-
 });
 
 
-// Member Data 
-Route::prefix('member')->name('member.')->group(function () {
+// MEMBER DATA 
+Route::prefix('member')->name('member.')->middleware('auth')->group(function () {
     Route::get('/', [MemberController::class, 'index'])->name('index');
     Route::post('/', [MemberController::class, 'store'])->name('store');
     Route::post('/delete/{member}', [MemberController::class, 'destroy'])->name('member.destroy');
     Route::post('{member}', [MemberController::class, 'update'])->name('update');
-
 });
+
 
 
 // Transaction
@@ -86,14 +86,18 @@ Route::get('/scan-batik/{code_batik}', [QrCodeController::class, 'show']);
 
 
 // Rute untuk pengguna yang sudah terautentikasi dan terverifikasi
-Route::get('/', [DashboardController::class, 'index'])
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// Rute untuk pengguna yang belum terautentikasi (rute publik)
-Route::get('/welcome', function () {
-    return Inertia::render('Welcome');
-});
+
+// Landing Page 
+Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/product', [WelcomeController::class, 'product']);
+
+Route::get('/about', [WelcomeController::class, 'about']);
+
 
 
 

@@ -229,9 +229,5 @@ class BatikController extends Controller
     
         return Response::make($qrCode, 200, $headers);
     }
-    
-    
 
-    
-    
 }
