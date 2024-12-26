@@ -1,8 +1,14 @@
 import React from "react";
 import { Head, usePage } from "@inertiajs/react";
-import { FiUser, FiShoppingBag, FiTag, FiCalendar, FiPenTool, FiTool, FiLayers, FiMapPin } from "react-icons/fi";
-import btmcLogo from '../../../images/BTMC.png';
-import igiLogo from '../../../images/IGI.png';
+import {
+    FiPenTool,
+    FiUser,
+    FiMapPin,
+    FiShoppingBag,
+    FiTool,
+    FiCalendar,
+    FiLayers,
+} from "react-icons/fi";
 
 export default function QrCode() {
     const { batik } = usePage().props;
@@ -10,115 +16,124 @@ export default function QrCode() {
     return (
         <>
             <Head title={`Detail Batik: ${batik.name}`} />
-            <div className="bg-gray-100 min-h-screen py-0 sm:py-12 flex justify-center items-center">
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-3xl relative">
-                    {/* SVG Batik Background */}
-                    <div className="absolute inset-0 bg-[url('/path-to-your-batik-pattern.svg')] bg-cover bg-center opacity-20 z-0"></div>
-
-                    {/* Bagian Header */}
-                    <div className="bg-white p-4 text-gray-800 text-center relative border-b z-10">
-                        {/* Logo BTMC */}
-                        <div className="absolute top-4 right-20 hidden md:block">
-                            <img src={btmcLogo} alt="BTMC Logo" className="w-14 h-14" />
-                        </div>
-                        {/* Logo IGI */}
-                        <div className="absolute top-4 right-4 hidden md:block">
-                            <img src={igiLogo} alt="IGI Logo" className="w-14 h-14" />
-                        </div>
-                        {/* Nama Batik */}
-                        <h1 className="text-3xl font-bold">{batik.name}</h1>
-                        <p className="text-sm">Informasi Detail Batik</p>
+            <div className="bg-orange-100 min-h-screen py-10 flex justify-center items-center">
+                <div className="bg-white rounded-xl w-full max-w-lg shadow-lg overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-orange-300 to-orange-500 p-6 text-white text-center rounded-t-xl">
+                        <h1 className="text-3xl font-semibold">{batik.name}</h1>
+                        <p className="text-sm mt-2 font-semibold">{`Kode Batik: M-${batik.code_batik
+                            .slice(1)
+                            .match(/.{1,2}/g)
+                            .join("-")}`}</p>
                     </div>
 
-                    {/* Bagian Konten */}
-                    <div className="p-8 space-y-6 z-10">
-                        {/* Bagian Deskripsi */}
-                        <div className="border-b pb-4">
-                            <h2 className="text-xl font-semibold text-gray-700 mb-3">Deskripsi</h2>
-                            <p className="text-gray-600 text-base leading-relaxed text-justify">
-                                {batik.description || "Deskripsi tidak tersedia."}
-                            </p>
+                    {/* Content */}
+                    <div className="p-6 space-y-6">
+                        {/* Image and Description */}
+                        <div className="bg-gray-50 rounded-lg shadow-md p-6 flex flex-col items-center">
+                            {/* Image */}
+                            <img
+                                src={`/storage/${batik.image}`}
+                                alt={batik.name}
+                                className="w-56 h-56 object-cover rounded-lg shadow-md"
+                            />
+                            {/* Description */}
+                            <div className="mt-4 text-center">
+                                <h2 className="text-lg font-semibold text-gray-800">
+                                    Deskripsi Batik
+                                </h2>
+                                <p className="text-gray-600 mt-2">
+                                    {batik.description || "Deskripsi tidak tersedia."}
+                                </p>
+                            </div>
                         </div>
 
-                        {/* Bagian Gambar */}
-                        {batik.image && (
-                            <div className="text-center">
-                                <img
-                                    src={`/storage/${batik.image}`}
-                                    alt={batik.name}
-                                    className="w-full max-w-xs mx-auto rounded-md shadow-md"
-                                />
+                        {/* Additional Information */}
+                        <div className="space-y-4">
+                            {/* Member Name */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiUser className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Kode Batik</h2>
+                                    <p className="text-gray-900 font-semibold">{` M-${batik.code_batik
+                                        .slice(1)
+                                        .match(/.{1,2}/g)
+                                        .join("-")}`}
+                                    </p>
+                                </div>
                             </div>
-                        )}
+                            {/* Member Name */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiUser className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Anggota MPIG-BTMC</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.member?.name || ""}
+                                    </p>
+                                </div>
+                            </div>
 
-                        {/* Bagian Detail */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiTag className="text-gray-500 text-xl" />
-                                
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Kode Batik:</span>
-                                    <span className="text-gray-900 font-semibold">
-                                    M-{batik.code_batik.slice(1).match(/.{1,2}/g).join('-')}
-                                    </span>
+                            {/* Store Name */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiShoppingBag className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Nama Merek (Toko)</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.member?.store_name || ""}
+                                    </p>
                                 </div>
                             </div>
-                            {/* <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiCreditCard className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Harga:</span>
-                                    <span className="text-gray-900 font-semibold">
-                                        {Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(batik.price)}
-                                    </span>
-                                </div>
-                            </div> */}
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiUser className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Anggota MPIG-BTMC:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.member?.name || "Tidak diketahui"}</span>
+
+                            {/* Bricklayer Name */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiTool className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Nama Penembok</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.bricklayer_name || ""}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiShoppingBag className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Nama Merek (Toko):</span>
-                                    <span className="text-gray-900 font-semibold">{batik.member?.store_name || "Tidak diketahui"}</span>
+
+                            {/* Motif Creator */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiPenTool className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Pembuat Motif</h2>
+                                    <p className="text-gray-900 font-semibold">{batik.motif_creator}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiPenTool className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Pembuat Motif:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.motif_creator || "Tidak diketahui"}</span>
+
+                            {/* Production Year */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiCalendar className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Tahun Produksi</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.production_year}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiTool className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Nama Penembok:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.bricklayer_name || "Tidak diketahui"}</span>
+
+                            {/* Materials */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiLayers className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Bahan</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.materials || ""}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiCalendar className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Tahun Produksi:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.production_year}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiLayers className="text-gray-500 text-xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Bahan:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.materials || "Tidak disebutkan"}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-3 border p-4 rounded-md">
-                                <FiMapPin className="text-gray-500 text-5xl" />
-                                <div className="flex flex-col">
-                                    <span className="text-gray-700 font-medium">Alamat Toko:</span>
-                                    <span className="text-gray-900 font-semibold">{batik.member?.address || "Tidak diketahui"}</span>
+
+                            {/* Address */}
+                            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-all">
+                                <FiMapPin className="text-orange-400 text-3xl" />
+                                <div>
+                                    <h2 className="text-gray-700 font-medium">Alamat Toko</h2>
+                                    <p className="text-gray-900 font-semibold">
+                                        {batik.member?.address || ""}
+                                    </p>
                                 </div>
                             </div>
                         </div>

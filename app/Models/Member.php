@@ -10,5 +10,5 @@ class Member extends Model
     use HasFactory;
 
     protected $table = 'members';
-    protected $fillable = ['id', 'member_number', 'name','place_of_birth','gender', 'employees', 'address', 'store_name', 'email', 'phone_number','image'];
+    protected $fillable = ['id', 'member_number', 'name','place_of_birth','gender', 'employees', 'address', 'store_name', 'email', 'phone_number','image','qr_code'];
 }

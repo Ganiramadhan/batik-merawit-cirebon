@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
 
 
 
@@ -41,41 +43,59 @@ class MemberController extends Controller
      */
     public function store(Request $request)
     {
-        $lastMember = Member::latest('id')->first(); 
-        $lastNumber = $lastMember ? (int) Str::afterLast($lastMember->member_number, '-') : 0; 
-        $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT); 
-        $generatedNumber = 'KMPIG-BTMC-' . $newNumber; 
-
-        // Validasi input
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'store_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone_number' => 'nullable|string|max:20',
-            'address' => 'required|string|max:500',
-            'place_of_birth' => 'required|string|max:100',
-            'gender' => 'required|string|max:100',
-            'employees' => 'required|integer|min:0', 
-            'image' => 'nullable|image|max:2048',
-        ]);
-
-        // Tambahkan nomor anggota yang dihasilkan secara otomatis
-        $validatedData['member_number'] = $generatedNumber;
-
-        // Upload gambar jika ada
-        if ($request->hasFile('image')) {
-            $validatedData['image'] = $request->file('image')->store('images', 'public');
+        try {
+            // Ambil nomor anggota terakhir dan buat nomor baru
+            $lastMember = Member::latest('id')->first(); 
+            $lastNumber = $lastMember ? (int) Str::afterLast($lastMember->member_number, '-') : 0; 
+            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT); 
+            $generatedNumber = 'KMPIG-BTMC-' . $newNumber;
+    
+            // Validasi input
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'store_name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone_number' => 'nullable|string|max:20',
+                'address' => 'required|string|max:500',
+                'place_of_birth' => 'required|string|max:100',
+                'gender' => 'required|string', 
+                'employees' => 'required|integer|min:0', 
+                'image' => 'nullable|image|max:2048',
+            ]);
+    
+            // Tambahkan nomor anggota yang dihasilkan secara otomatis
+            $validatedData['member_number'] = $generatedNumber;
+    
+            // Generate QR Code dalam format SVG
+            $url = url("/scan-member/{$validatedData['member_number']}");
+            $qrCodeSvg = QrCode::format('svg')->size(200)->generate($url);
+    
+            // Encode QR Code SVG ke Base64
+            $validatedData['qr_code'] = base64_encode($qrCodeSvg);
+    
+            // Upload gambar jika ada
+            if ($request->hasFile('image')) {
+                $validatedData['image'] = $request->file('image')->store('images', 'public');
+            }
+    
+            // Simpan data anggota
+            $member = Member::create($validatedData);
+    
+            // Kembalikan respons JSON
+            return response()->json([
+                'message' => 'Data Member berhasil ditambahkan.',
+                'member' => $member,
+            ], 201);
+    
+        } catch (\Exception $e) {
+            // Tangani kesalahan dan berikan pesan error
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat menambahkan data Member.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Simpan data anggota
-        $member = Member::create($validatedData);
-
-        // Kembalikan respons JSON
-        return response()->json([
-            'message' => 'Data Member berhasil ditambahkan.',
-            'member' => $member,
-        ], 201);
     }
+    
 
     
 
@@ -110,7 +130,6 @@ class MemberController extends Controller
                 'place_of_birth' => 'required|string|max:100', 
                 'gender' => 'required|string|max:100', 
                 'employees' => 'required|string|max:100',
-                // 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', 
             ]);
             $member = Member::findOrFail($id);
             if ($request->hasFile('image')) {

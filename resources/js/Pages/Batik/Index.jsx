@@ -714,7 +714,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                         {batik.member?.name ? (
                                             <span className="flex items-center space-x-2" title={batik.member.name}>
                                                 <span>{batik.member.name}</span>
-                                                <FiUser className="text-blue-500" size={16} />
+                                                {/* <FiUser className="text-blue-500" size={16} /> */}
                                             </span>
                                         ) : null}
 

@@ -4,6 +4,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import * as XLSX from "xlsx"; 
+import btmcLogo from '../../../images/BTMC.png';
+import igiLogo from '../../../images/IGI.png';
+import defaultLogo from '../../../images/newBTMC.png';
+import qrBackgroundMember from '../../../images/backgroundMember.png';
 import { 
     FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo, 
     FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle, FiLoader, FiPrinter, FiUserCheck} from 'react-icons/fi';
@@ -19,6 +23,7 @@ export default function MemberData({ user, title, members }) {
     const [itemsPerPage, setItemsPerPage] = useState(5); 
     const [imagePreview, setImagePreview] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
     const [imageName, setImageName] = useState('');
     const [newMember, setNewMember] = useState({
         member_number: '',
@@ -32,6 +37,7 @@ export default function MemberData({ user, title, members }) {
         address: '',
         image:null,
     });
+    
     
     const [filteredMemberData, setFilteredMemberData] = useState(members);
 
@@ -108,9 +114,9 @@ export default function MemberData({ user, title, members }) {
                 place_of_birth_temp: place?.trim() || '', 
                 place_of_birth_date: date?.trim() || '', 
                 gender: member.gender || '',
-                imagePreview: member.image ? `/storage/app/public/${member.image}` : '',  
+                imagePreview: member.image ? `/storage/${member.image}` : '',  
             });
-            setImagePreview(member.image ? `/storage/app/public/${member.image}` : ''); 
+            setImagePreview(member.image ? `/storage/${member.image}` : ''); 
             setIsEditMode(true);
             setIsModalOpen(true);
         } else {
@@ -150,7 +156,7 @@ export default function MemberData({ user, title, members }) {
                 response = await axios.post(`/member/${newMember.id}`, formData);
 
                 if (response.status === 200 || response.status === 204) {
-                    const updatedImage = response?.data?.image_url;
+                    const updatedImage = response?.data?.image;
                     setFilteredMemberData((prevData) => {
                         return prevData.map((item) =>
                             item.id === newMember.id
@@ -158,6 +164,7 @@ export default function MemberData({ user, title, members }) {
                                     ...item,
                                     ...newMember,
                                     image: updatedImage || item.image,
+                                    qr_code: response.data.member.qr_code || {},
                                 }
                                 : item
                         );
@@ -179,6 +186,8 @@ export default function MemberData({ user, title, members }) {
                     {
                         ...response.data.member,
                         image: response.data.member.image || '',
+                        qr_code: response.data.member.qr_code || {},
+
                     },
                 ]);
 
@@ -404,15 +413,6 @@ export default function MemberData({ user, title, members }) {
                                                 </span>
                                             </div>
                                         </td>
-                                        {/* <td className="px-6 py-4 text-sm text-gray-800">
-                                            {member.image && (
-                                                <img
-                                                    src={`/storage/app/public/${member.image}`}
-                                                    alt={member.name}
-                                                    className="w-full h-12 object-cover rounded-lg shadow-sm mb-4 mt-2"
-                                                />
-                                            )}
-                                        </td> */}
                                         <td className="px-4 py-2 text-center">
                                         <div className="flex justify-center space-x-2">
                                             {/* Tombol Edit */}
@@ -448,6 +448,135 @@ export default function MemberData({ user, title, members }) {
                                                 Hapus
                                             </span>
                                             </button>
+                                            
+                                            {member.qr_code && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        // Ambil tombol yang diklik
+                                                        const button = e.target.closest("button");
+                                                        if (button.disabled) return; // Jika tombol sudah disabled, hentikan eksekusi
+
+                                                        button.disabled = true; // Nonaktifkan tombol
+
+                                                        const scale = 10; // Resolusi tinggi
+                                                        const width = 450; // Lebar canvas
+                                                        const height = 300; // Tinggi canvas
+                                                        const logoSize = 50; // Ukuran logo
+                                                        const qrSize = 70; // Ukuran QR Code
+
+                                                        try {
+                                                            const canvas = document.createElement("canvas");
+                                                            const ctx = canvas.getContext("2d");
+
+                                                            // Setup resolusi canvas
+                                                            canvas.width = width * scale;
+                                                            canvas.height = height * scale;
+                                                            ctx.scale(scale, scale);
+                                                            ctx.imageSmoothingEnabled = false;
+
+                                                            const loadImage = (src) => {
+                                                                return new Promise((resolve, reject) => {
+                                                                    const img = new Image();
+                                                                    img.crossOrigin = "anonymous";
+                                                                    img.src = src;
+                                                                    img.onload = () => resolve(img);
+                                                                    img.onerror = () => reject(`Gagal memuat gambar: ${src}`);
+                                                                });
+                                                            };
+
+                                                            const memberLogo = member?.image
+                                                                ? `/storage/${member.image}`
+                                                                : defaultLogo;
+
+                                                            const [btmcImage, igiImage, memberImage, qrImage, background] =
+                                                                await Promise.all([
+                                                                    loadImage(btmcLogo),
+                                                                    loadImage(igiLogo),
+                                                                    loadImage(memberLogo),
+                                                                    loadImage(`data:image/svg+xml;base64,${member.qr_code}`),
+                                                                    loadImage(qrBackgroundMember),
+                                                                ]);
+
+                                                            // Gambar background
+                                                            ctx.drawImage(background, 0, 0, width, height);
+
+                                                            // Gambar logo
+                                                            const logoOffset = (width - logoSize * 3 - 10) / 2; // Menjaga jarak antar logo
+                                                            ctx.drawImage(btmcImage, logoOffset, 20, logoSize, logoSize);
+                                                            ctx.drawImage(igiImage, logoOffset + logoSize + 5, 20, logoSize, logoSize);
+                                                            ctx.drawImage(memberImage, logoOffset + (logoSize + 5) * 2, 20, logoSize, logoSize);
+
+                                                            const textYOffset = 120; // Adjusted to move the text up
+                                                            const qrYOffset = height - qrSize - 40; // Keep the QR code position the same
+
+                                                            // Tambahkan teks informasi di atas QR code
+                                                            ctx.font = `${2 * scale}px Arial`;
+                                                            ctx.fillStyle = "#333333";
+                                                            ctx.textAlign = "center";
+                                                            const certificationText = "SEDIA\nBATIK TULIS MERAWIT CIREBON\nKUALITAS INDIKASI GEOGRAFIS (IG)";
+                                                            const lines = certificationText.split("\n");
+
+                                                            let yPosition = textYOffset;
+                                                            lines.forEach((line) => {
+                                                                ctx.fillText(line, width / 2, yPosition);
+                                                                yPosition += 20; // Adjust line spacing if needed
+                                                            });
+
+                                                            // Gambar QR Code di tengah bawah
+                                                            ctx.drawImage(qrImage, (width - qrSize) / 2, qrYOffset, qrSize, qrSize);
+
+                                                            // Tambahkan border di sekitar QR Code
+                                                            ctx.strokeStyle = "#FFA500";
+                                                            ctx.lineWidth = 2;
+                                                            ctx.strokeRect((width - qrSize) / 2 - 7, qrYOffset - 7, qrSize + 14, qrSize + 14);
+
+                                                            // Tambahkan border luar
+                                                            ctx.strokeStyle = "#cccccc";
+                                                            ctx.lineWidth = 1;
+                                                            ctx.strokeRect(10, 10, width - 20, height - 20);
+
+                                                            // Unduh gambar
+                                                            canvas.toBlob((blob) => {
+                                                                if (blob) {
+                                                                    const url = URL.createObjectURL(blob);
+                                                                    const link = document.createElement("a");
+                                                                    link.href = url;
+                                                                    link.download = `Member-${member.member_number || "qr"}.png`;
+                                                                    link.click();
+                                                                    URL.revokeObjectURL(url);
+
+                                                                    // SweetAlert berhasil
+                                                                    Swal.fire({
+                                                                        icon: "success",
+                                                                        title: "Berhasil",
+                                                                        text: "QR Code berhasil dicetak!",
+                                                                    }).then(() => {
+                                                                        button.disabled = false; // Aktifkan kembali tombol setelah klik OK
+                                                                    });
+                                                                }
+                                                            }, "image/png");
+                                                        } catch (error) {
+                                                            console.error("Error:", error);
+                                                            Swal.fire({
+                                                                icon: "error",
+                                                                title: "Error",
+                                                                text: "Gagal mengunduh gambar. Silakan coba lagi.",
+                                                            }).then(() => {
+                                                                button.disabled = false; // Aktifkan kembali tombol setelah klik OK
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="bg-gray-500 text-white py-2 px-3 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
+                                                    aria-label="Print Qr Code"
+                                                >
+                                                    <FiPrinter className="text-base" />
+                                                    <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                        Print
+                                                    </span>
+                                                </button>
+                                            )}
+
+
                                         </div>
                                         </td>
                                     </tr>
@@ -588,7 +717,7 @@ export default function MemberData({ user, title, members }) {
                         {selectedMember.image && (
                             <div className="flex justify-center mb-4">
                                 <img
-                                    src={`/storage/app/public/${selectedMember.image}`}
+                                    src={`/storage/${selectedMember.image}`}
                                     alt="Logo Anggota"
                                     className="w-24 h-24 object-cover rounded-lg "
                                 />

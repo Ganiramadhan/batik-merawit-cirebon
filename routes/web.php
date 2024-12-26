@@ -79,6 +79,8 @@ Route::prefix('member')->name('member.')->middleware('auth')->group(function () 
 // Scan for detail batik 
 Route::get('/scan-batik/{code_batik}', [QrCodeController::class, 'show']);
 
+Route::get('/scan-member/{member_number}', [QrCodeController::class, 'showMember']);
+
 // Route::get('/', function () {
 //     return Inertia::render('Dashboard');
 // })->middleware(['auth', 'verified'])->name('dashboard');

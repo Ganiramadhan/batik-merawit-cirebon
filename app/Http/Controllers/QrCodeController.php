@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batik;
+use App\Models\Member;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,6 +54,16 @@ class QrCodeController extends Controller
             'batik' => $batik,
         ]);
     }
+    
+    public function showMember($member_number)
+    {
+        $member = Member::where('member_number', $member_number)->firstOrFail();
+    
+        return Inertia::render('Member/QrCode', [
+            'member' => $member,
+        ]);
+    }
+    
     
 
     /**
