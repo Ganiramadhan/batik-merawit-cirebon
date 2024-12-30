@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\BacklayerController;
 use App\Http\Controllers\BatikController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MotifCreatorController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QrCodeController;
@@ -51,6 +53,10 @@ Route::prefix('batik')->name('batik.')->middleware('auth')->group(function () {
     Route::post('/delete/{batik}', [BatikController::class, 'destroy'])->name('batik.destroy');
     Route::get('/{id}/download-qr', [BatikController::class, 'downloadQrCode'])->name('batik.downloadQr');
 
+    Route::get('/get-batik-code', [BatikController::class, 'getLastBatikCode']);
+
+    
+    
     // Show Qr Scann 
     Route::get('/{code}', [BatikController::class, 'detail'])->name('batik.detail');
 });
@@ -62,6 +68,26 @@ Route::prefix('member')->name('member.')->middleware('auth')->group(function () 
     Route::post('/', [MemberController::class, 'store'])->name('store');
     Route::post('/delete/{member}', [MemberController::class, 'destroy'])->name('member.destroy');
     Route::post('{member}', [MemberController::class, 'update'])->name('update');
+});
+
+
+// BACKLAYER DATA 
+Route::prefix('backlayer')->name('backlayer.')->middleware('auth')->group(function () {
+    Route::get('/', [BacklayerController::class, 'index'])->name('index');
+    Route::post('/', [BacklayerController::class, 'store'])->name('store');
+    Route::post('{backlayer}', [BacklayerController::class, 'update'])->name('update');
+    
+    Route::delete('/delete/{backlayer}', [BacklayerController::class, 'destroy'])->name('backlayer.destroy');
+});
+
+// MOTIF CREATOR DATA 
+Route::prefix('motif_creator')->name('motif_creator.')->middleware('auth')->group(function () {
+    Route::get('/', [MotifCreatorController::class, 'index'])->name('index');
+    Route::post('/', [MotifCreatorController::class, 'store'])->name('store');
+    Route::post('{motif_creator}', [MotifCreatorController::class, 'update'])->name('update');
+
+    Route::delete('/delete/{motif_creator}', [MotifCreatorController::class, 'destroy'])->name('motif_creator.destroy');
+
 });
 
 

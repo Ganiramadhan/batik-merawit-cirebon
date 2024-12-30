@@ -5,13 +5,16 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import * as XLSX from 'xlsx';
-import { FiEdit, FiTrash, FiPrinter , FiPlus, FiX, FiSave , FiUser, FiTag,FiSearch, FiXCircle,FiLoader} from "react-icons/fi";
+import { FiEdit, FiTrash, FiPrinter , FiPlus, FiX, FiSave , FiUser, FiTag,FiSearch, FiXCircle,FiLoader } from "react-icons/fi";
 import btmcLogo from '../../../images/BTMC.png';
 import igiLogo from '../../../images/IGI.png';
 import defaultLogo from '../../../images/newBTMC.png';
 import qrBackground from '../../../images/background.jpg';
 
-
+import { CiBarcode, CiUser, CiDroplet , CiCalendarDate } from "react-icons/ci";
+import { TfiPaintBucket } from "react-icons/tfi";
+import { PiPaintBrushLight, PiStorefrontThin } from "react-icons/pi";
+import { SlLayers } from "react-icons/sl";
 
 
 
@@ -24,6 +27,8 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     const [customMaterial, setCustomMaterial] = useState("");
     const [customColorMaterial, setCustomColorMaterial] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [oldCodeBatik, setOldCodeBatik] = useState("");
+    const [selectedBatik, setSelectedBatik] = useState(null);
 
     const [newBatik, setNewBatik] = useState({
         code_batik: '',
@@ -38,6 +43,29 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         color_materials: '',
         member_id: '',
     });
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+    
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+    
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
+        return currentY + lineHeight; 
+    }
+    
 
     
     const exportBatikData = () => {
@@ -154,15 +182,28 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     
 
 
-    const generateCodeBatik = () => {
-        // Cari kode motif dari batikDescription
-        const selectedMotif = batikDescription.find(
-            (description) => description.name === newBatik.name
-        );
-        const motif = selectedMotif
-        ? selectedMotif.code_batik.padStart(2, "0")
-        : String(Math.floor(Math.random() * 99)).padStart(2, "0");
-    
+
+    const generateCodeBatik = async (isEditMode = false) => {
+
+        // console.log('New Batik:', newBatik.id);
+        // console.log('Batik Data:', batikData);
+        let nomorMotif;
+        try {
+            if (!isEditMode) {
+                // Jika bukan mode edit, generate nomor motif baru
+                const response = await axios.get('/batik/get-batik-code');
+                const lastMotifCode = response.data.last_motif_code || "000";
+                nomorMotif = (parseInt(lastMotifCode, 10) + 1).toString().padStart(3, "0");
+            } else {
+                // Jika mode edit, ambil nomor motif dari kode batik yang sudah ada
+                const existingBatik = filteredData.find(batik => batik.id === newBatik.id);
+
+                nomorMotif = existingBatik.code_batik.slice(1, 4);
+            }
+        } catch (error) {
+            console.error("Gagal mengambil nomor motif terakhir:", error);
+            nomorMotif = "000"; // Default jika gagal
+        }
     
         const kualitas = newBatik.quality || "SB";
     
@@ -170,11 +211,9 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         const selectedMember = members.find(
             (member) => member.id === Number(newBatik.member_id)
         );
-        
-
         const pemilik = selectedMember
             ? selectedMember.member_number.slice(-2).padStart(2, "0")
-            : "00"; 
+            : "00";
     
         // Cari motif_creator_number berdasarkan motif_creator
         const selectedMotifCreator = motifCreators.find(
@@ -196,10 +235,11 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             ? newBatik.production_year.slice(-2)
             : new Date().getFullYear().toString().slice(-2);
     
-        return `M${motif}${kualitas}${pemilik}${pembuat}${penembok}${tahun}`;
+        // Format akhir kode batik
+        const generatedCode = `M${nomorMotif}${kualitas}${pemilik}${pembuat}${penembok}${tahun}`;
+    
+        return generatedCode;
     };
-    
-    
     
     
     const setCustomField = (fieldName, customField, defaultFieldValue) => {
@@ -211,12 +251,14 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
         return defaultFieldValue;
     };
     
+
+
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
         if (isSubmitting) return;
     
-        setIsSubmitting(true); 
+        setIsSubmitting(true);
     
         // Validasi Nama
         if (!newBatik.name || newBatik.name.trim() === '') {
@@ -229,7 +271,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             return;
         }
     
-        // Validasi Gambar pada saat tambah atau jika diubah
+        // Validasi Gambar
         if (!isEditMode && (!newBatik.image || newBatik.image === '')) {
             Swal.fire({
                 icon: 'warning',
@@ -239,69 +281,51 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             setIsSubmitting(false);
             return;
         }
-        
-        const generatedCode = generateCodeBatik();
-        const formData = new FormData();
     
-        formData.append("code_batik", generatedCode);
-    
-        // Handle custom fields
-        formData.set("color_materials", setCustomField("color_materials", customColorMaterial, newBatik.color_materials));
-        formData.set("name", setCustomField("name", customName, newBatik.name));
-        formData.set(
-            "materials",
-            newBatik.materials === 'custom' ? customMaterial : newBatik.materials
-        );
-    
-       // Kirim gambar jika ada
-        if (newBatik.image) {
-            formData.append('image', newBatik.image);
-        }
-    
-        // Append other fields
-        Object.keys(newBatik).forEach((key) => {
-            if (newBatik[key] && !['name', 'materials', 'color_materials', 'image'].includes(key)) {
-                formData.append(key, newBatik[key]);
-            }
-        });
-        
         try {
+            const generatedCode = await generateCodeBatik(isEditMode);
+            const formData = new FormData();
+    
+            // Tambahkan data yang perlu disubmit
+            formData.append("code_batik", generatedCode);
+            formData.append("color_materials", setCustomField("color_materials", customColorMaterial, newBatik.color_materials));
+            formData.append("name", setCustomField("name", customName, newBatik.name));
+            formData.append("materials", newBatik.materials === 'custom' ? customMaterial : newBatik.materials);
+    
+            if (newBatik.image) {
+                formData.append('image', newBatik.image);
+            }
+    
+            Object.keys(newBatik).forEach(key => {
+                if (!['name', 'materials', 'color_materials', 'image'].includes(key) && newBatik[key]) {
+                    formData.append(key, newBatik[key]);
+                }
+            });
+    
             let response;
             if (isEditMode && newBatik.id) {
                 response = await axios.post(`/batik/${newBatik.id}`, formData);
-                const updatedImage = response.data.batik.image;
-                setFilteredBatikData((prevData) =>
-                    prevData.map((item) =>
-                        item.id === newBatik.id
-                            ? {
-                                ...item,
-                                ...newBatik,    
-                                code_batik: generatedCode,
-                                qr_code: response.data.batik.qr_code || {},
-                                image: updatedImage || item.image,
-                                name: newBatik.name === 'custom' ? customName : newBatik.name,
-                                materials: newBatik.materials === 'custom' ? customMaterial : newBatik.materials,
-                                color_materials: newBatik.color_materials === 'custom' ? customColorMaterial : newBatik.color_materials,
-                                member: response.data.member || null,
-                            }
-                            : item
-                    )
-                );
             } else {
                 response = await axios.post('/batik', formData);
-                setFilteredBatikData((prevData) => [
-                    ...prevData,
-                    {
-                        ...response.data.batik,
-                        code_batik: generatedCode,
-                        image: response.data.batik.image || '',
-                        qr_code: response.data.batik.qr_code || {},
-                        name: response.data.batik.name === 'custom' ? customName : newBatik.name,
-                        materials: newBatik.materials === 'custom' ? customMaterial : newBatik.materials,
-                        color_materials: newBatik.color_materials === 'custom' ? customColorMaterial : newBatik.color_materials,
-                        member: response.data.member || null,
-                    }
-                ]);
+            }
+    
+            const updatedData = {
+                ...response.data.batik,
+                code_batik: generatedCode,
+                image: response.data.batik.image || '',
+                qr_code: response.data.batik.qr_code || {},
+                name: newBatik.name === 'custom' ? customName : newBatik.name,
+                materials: newBatik.materials === 'custom' ? customMaterial : newBatik.materials,
+                color_materials: newBatik.color_materials === 'custom' ? customColorMaterial : newBatik.color_materials,
+                member: response.data.member || null,
+            };
+    
+            if (isEditMode) {
+                setFilteredBatikData(prevData =>
+                    prevData.map(item => item.id === newBatik.id ? updatedData : item)
+                );
+            } else {
+                setFilteredBatikData(prevData => [...prevData, updatedData]);
             }
     
             Swal.fire({
@@ -314,28 +338,17 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             resetForm();
         } catch (error) {
             console.error('Error:', error);
-    
-            if (error.response && error.response.data?.errors) {
-                const errorMessages = Object.values(error.response.data.errors).flat().join('\n');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Terjadi Kesalahan',
-                    text: errorMessages || 'Tidak dapat memproses permintaan.',
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Terjadi Kesalahan',
-                    text: 'Gagal mengirimkan data ke server.',
-                });
-            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Terjadi Kesalahan',
+                text: error.response?.data?.message || 'Gagal mengirimkan data ke server.',
+            });
         } finally {
-            setIsSubmitting(false); 
+            setIsSubmitting(false);
         }
     };
     
-    
-    
+
     
     const handleMaterialChange = (selectedOption) => {
         const isCustomMaterial = selectedOption.value === 'custom';
@@ -450,6 +463,9 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
             const isCustomColorMaterial = !predefinedColorMaterials.includes(
                 selectedBatik.color_materials
             );
+
+            setOldCodeBatik(selectedBatik.code_batik || "");
+
     
             // Set newBatik state
             setNewBatik({
@@ -462,6 +478,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                         ? selectedBatikDescription.description
                         : "",
                 image: "",
+                // code_batik: selectedBatik.code_batik || "",
                 motif_creator: selectedBatik.motif_creator || "",
                 bricklayer_name: selectedBatik.bricklayer_name || "",
                 production_year: selectedBatik.production_year || "",
@@ -619,6 +636,10 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
     batikOptions.push({ value: 'custom', label: 'Custom' });
 
 
+    const handleCardClick = (batik) => {
+        setSelectedBatik(batik);
+    };
+
 
     return (
         <AuthenticatedLayout user={user} header={<h2 className="font-semibold text-xl text-gray-800">{title}</h2>}>
@@ -670,13 +691,17 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                     </div>
                 </div>
 
-                 {/* Grid untuk Card */}
+                {/* Grid untuk Card */}
                 {filteredData.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {filteredData.map((batik, index) => (
                             <div
                                 key={batik.id || index}
-                                className="relative flex flex-col justify-between p-6 bg-white border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                                className="relative flex flex-col justify-between p-6 bg-white border rounded-lg shadow-md hover:shadow-lg transition-transform duration-300 hover:scale-105 cursor-pointer"
+                                onClick={(e) => {
+                                    // Abaikan klik pada elemen dengan class no-modal
+                                    if (!e.target.closest('.no-modal')) handleCardClick(batik);
+                                }}
                             >
                                 {/* Quality Badge */}
                                 {batik.quality && (
@@ -711,13 +736,7 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                     {/* Nama Member */}
                                     <p className="text-gray-600 text-sm mt-2">
                                         <span className="block max-w-xs font-bold" title={batik.member?.name}>
-                                        {batik.member?.name ? (
-                                            <span className="flex items-center space-x-2" title={batik.member.name}>
-                                                <span>{batik.member.name}</span>
-                                                {/* <FiUser className="text-blue-500" size={16} /> */}
-                                            </span>
-                                        ) : null}
-
+                                            {batik.member?.name}
                                         </span>
                                     </p>
 
@@ -734,82 +753,86 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
                                 {/* Kode Batik */}
                                 <div className="flex items-center justify-between mb-2">
-                                        <div className="text-lg font-bold text-gray-800">
-                                            M-{batik.code_batik.slice(1).match(/.{1,2}/g).join("-")}
-                                        </div>
+                                    <div className="text-lg font-bold text-gray-800">
+                                        {`M-${batik.code_batik.slice(1, 4)}-${batik.code_batik.slice(4).match(/.{1,2}/g)?.join("-") || ""}`}
                                     </div>
+                                </div>
 
-                                {/* Gambar, Kode Batik, dan Tombol */}
-                                <div>
-                                    {/* Gambar */}
-                                    <div className="relative">
-                                        {batik.image && (
-                                            <img
-                                                src={`/storage/${batik.image}`}
-                                                alt={batik.name}
-                                                className="w-full h-40 object-cover rounded-lg shadow-sm mb-4"
-                                            />
-                                        )}
-                                    </div>
+                                {/* Gambar */}
+                                <div className="relative">
+                                    {batik.image && (
+                                        <img
+                                            src={`/storage/${batik.image}`}
+                                            alt={batik.name}
+                                            className="w-full h-40 object-cover rounded-lg shadow-sm mb-4"
+                                        />
+                                    )}
+                                </div>
 
-                                    {/* Tombol Aksi */}
-                                    <div className="flex justify-between items-center gap-2 mt-2">
-                                        <button
-                                            type="button"
-                                            className="bg-blue-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-blue-600 hover:shadow-md transition-all duration-200 ease-in-out"
-                                            onClick={() => handleEditClick(batik.id)}
-                                            aria-label="Edit Data"
-                                        >
-                                            <FiEdit className="mr-2 text-base" />
-                                            <span className="text-sm font-medium">Edit</span>
-                                        </button>
+                                {/* Tombol Aksi */}
+                                <div className="flex justify-between items-center gap-2 mt-2">
+                                    <button
+                                        type="button"
+                                        className="bg-blue-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-blue-600 hover:shadow-md transition-all duration-200 ease-in-out no-modal"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Cegah event bubbling ke parent
+                                            handleEditClick(batik.id);
+                                        }}
+                                        aria-label="Edit Data"
+                                    >
+                                        <FiEdit className="mr-2 text-base" />
+                                        <span className="text-sm font-medium">Edit</span>
+                                    </button>
 
-                                        <button
-                                            className="bg-red-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-red-600 hover:shadow-md transition-all duration-200 ease-in-out"
-                                            onClick={() => handleDeleteClick(batik.id)}
-                                            aria-label="Hapus Data"
-                                        >
-                                            <FiTrash className="mr-2 text-base" />
-                                            <span className="text-sm font-medium">Hapus</span>
-                                        </button>
-                                        {batik.qr_code && (
-                                            <button
-                                                onClick={async () => {
-                                                const scale = 10; // Resolusi tinggi
-                                                const width = 250; // Lebar canvas
-                                                const height = 350; // Tinggi canvas
-                                                const logoSize = 45; // Ukuran logo
-                                                const qrSize = 100; // Ukuran QR Code
-                                                const lineSpacing = 16; // Jarak antar baris teks
-                                                const boxSpacing = 5; // Jarak antar kotak kode
+                                    <button
+                                        className="bg-red-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-red-600 hover:shadow-md transition-all duration-200 ease-in-out no-modal"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Cegah event bubbling ke parent
+                                            handleDeleteClick(batik.id);
+                                        }}
+                                        aria-label="Hapus Data"
+                                    >
+                                        <FiTrash className="mr-2 text-base" />
+                                        <span className="text-sm font-medium">Hapus</span>
+                                    </button>
+                                    {batik.qr_code && (
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation(); 
+                                            const scale = 10; // Resolusi tinggi
+                                            const width = 250; // Lebar canvas
+                                            const height = 350; // Tinggi canvas
+                                            const logoSize = 45; // Ukuran logo BTMC dan IGI
+                                            const qrSize = 90; // Ukuran QR Code lebih kecil
+                                            const lineSpacing = 16; // Jarak antar baris teks
+                                            const boxSpacing = 5; // Jarak antar kotak kode
 
-                                                try {
-                                                    const canvas = document.createElement("canvas");
-                                                    const ctx = canvas.getContext("2d");
+                                            try {
+                                                const canvas = document.createElement("canvas");
+                                                const ctx = canvas.getContext("2d");
 
-                                                    // Setup resolusi canvas
-                                                    canvas.width = width * scale;
-                                                    canvas.height = height * scale;
-                                                    ctx.scale(scale, scale);
-                                                    ctx.imageSmoothingEnabled = false;
+                                                // Setup resolusi canvas
+                                                canvas.width = width * scale;
+                                                canvas.height = height * scale;
+                                                ctx.scale(scale, scale);
+                                                ctx.imageSmoothingEnabled = false;
 
-                                                    const loadImage = (src) => {
-                                                    return new Promise((resolve, reject) => {
+                                                const loadImage = (src) =>
+                                                    new Promise((resolve, reject) => {
                                                         const img = new Image();
                                                         img.crossOrigin = "anonymous";
                                                         img.src = src;
                                                         img.onload = () => resolve(img);
                                                         img.onerror = () => reject(`Gagal memuat gambar: ${src}`);
                                                     });
-                                                    };
 
-                                                    // Sumber gambar
-                                                    const memberLogo = batik.member?.image
+                                                // Sumber gambar
+                                                const memberLogo = batik.member?.image
                                                     ? `/storage/${batik.member.image}`
                                                     : defaultLogo;
 
-                                                    // Muat gambar
-                                                    const [btmcImage, igiImage, memberImage, qrImage, background] =
+                                                // Muat gambar
+                                                const [btmcImage, igiImage, memberImage, qrImage, background] =
                                                     await Promise.all([
                                                         loadImage(btmcLogo),
                                                         loadImage(igiLogo),
@@ -818,145 +841,157 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
                                                         loadImage(qrBackground),
                                                     ]);
 
-                                                    // Gambar background
-                                                    ctx.drawImage(background, 0, 0, width, height);
+                                                // Tentukan ukuran gambar member berdasarkan rasio tinggi/lebarnya
+                                                let memberImageWidth = logoSize;
+                                                let memberImageHeight =
+                                                    (memberImage.height / memberImage.width) * memberImageWidth;
 
-                                                    // Gambar logo
-                                                    ctx.drawImage(btmcImage, 55, 20, logoSize, logoSize);
-                                                    ctx.drawImage(igiImage, 105, 20, logoSize, logoSize);
-                                                    ctx.drawImage(memberImage, 155, 20, logoSize, logoSize);
+                                                if (memberImage.height > memberImage.width) {
+                                                    memberImageWidth = logoSize * 0.8;
+                                                    memberImageHeight =
+                                                        (memberImage.height / memberImage.width) * memberImageWidth;
+                                                } else if (memberImage.width > memberImage.height) {
+                                                    memberImageWidth = logoSize * 1.5;
+                                                    memberImageHeight =
+                                                        (memberImage.height / memberImage.width) * memberImageWidth;
+                                                }
 
-                                                    // Geser elemen ke atas dengan menyesuaikan posisi Y
-                                                    const qrYOffset = 80; // Offset posisi QR Code
-                                                    const textYOffset = 210; // Offset posisi teks informasi
+                                                // Gambar background
+                                                ctx.drawImage(background, 0, 0, width, height);
 
-                                                    // Gambar QR Code
-                                                    ctx.drawImage(qrImage, (width - qrSize) / 2, qrYOffset, qrSize, qrSize);
+                                                // Gambar logo BTMC dan IGI
+                                                ctx.drawImage(btmcImage, 55, 20, logoSize, logoSize);
+                                                ctx.drawImage(igiImage, 105, 20, logoSize, logoSize);
 
-                                                    // Tambahkan teks informasi (rata kiri)
-                                                    ctx.font = `${1.1 * scale}px Arial`;
-                                                    ctx.fillStyle = "#333333";
-                                                    ctx.textAlign = "left"; // Rata kiri
+                                                // Posisi gambar member
+                                                let memberYPosition = 20;
+                                                if (memberImageWidth > logoSize * 1.2) {
+                                                    memberYPosition = 30;
+                                                }
 
-                                                    const textStartX = 20;
+                                                ctx.drawImage(
+                                                    memberImage,
+                                                    155,
+                                                    memberYPosition,
+                                                    memberImageWidth,
+                                                    memberImageHeight
+                                                );
 
-                                                    const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
-                                                    const words = text.split(" ");
-                                                    let line = "";
-                                                    for (let n = 0; n < words.length; n++) {
-                                                        const testLine = line + words[n] + " ";
-                                                        const metrics = context.measureText(testLine);
-                                                        const testWidth = metrics.width;
-                                                        if (testWidth > maxWidth && n > 0) {
-                                                        context.fillText(line, x, y);
-                                                        line = words[n] + " ";
-                                                        y += lineHeight;
-                                                        } else {
-                                                        line = testLine;
-                                                        }
-                                                    }
-                                                    context.fillText(line, x, y);
-                                                    return y + lineHeight; // Return the next Y position
-                                                    };
+                                                // Gambar QR Code
+                                                ctx.drawImage(
+                                                    qrImage,
+                                                    (width - qrSize) / 2,
+                                                    95, // qrYOffset
+                                                    qrSize,
+                                                    qrSize
+                                                );
 
-                                                    const maxTextWidth = width - 40; // Batas lebar teks
-                                                    let currentY = wrapText(
+                                                // Tambahkan teks informasi
+                                                ctx.font = `${1.1 * scale}px Arial`;
+                                                ctx.fillStyle = "#333333";
+                                                ctx.textAlign = "left";
+
+                                                const textStartX = 20;
+                                                const maxTextWidth = width - 40;
+
+                                                let currentY = wrapText(
                                                     ctx,
                                                     `Nama Motif: ${batik.name || "-"}`,
                                                     textStartX,
-                                                    textYOffset,
+                                                    210, // textYOffset
                                                     maxTextWidth,
                                                     lineSpacing
-                                                    );
+                                                );
 
-                                                    // Tambahkan teks lainnya
-                                                    ctx.fillText(
+                                                ctx.fillText(
                                                     `Jenis Produk: ${batik.materials || "-"}`,
                                                     textStartX,
                                                     currentY
-                                                    );
-                                                    currentY += lineSpacing;
+                                                );
+                                                currentY += lineSpacing;
 
-                                                    ctx.fillText(
+                                                ctx.fillText(
                                                     `Harga: Rp. ${batik.price || "-"}`,
                                                     textStartX,
                                                     currentY
-                                                    );
+                                                );
 
-                                                    // Tambahkan Kode Produk IG Batik Tulis Merawit (tetap konsisten di bawah)
-                                                    const certificationText = "Kode Produk IG Batik Tulis Merawit";
-                                                    let codeText = batik.code_batik || "-";
-
-                                                    // Ubah format kode menjadi "M" + pasangan huruf/angka
-                                                    codeText = `${codeText.replace(/[^a-zA-Z0-9]/g, "")}`;
-                                                    const formattedCode = [
+                                                // Tambahkan Kode Produk
+                                                const certificationText =
+                                                    "Kode Produk IG Batik Tulis Merawit";
+                                                let codeText = batik.code_batik || "-";
+                                                codeText = codeText.replace(/[^a-zA-Z0-9]/g, "");
+                                                const formattedCode = [
                                                     codeText.charAt(0),
-                                                    ...codeText.slice(1).match(/.{1,2}/g),
-                                                    ];
+                                                    codeText.slice(1, 4),
+                                                    ...codeText.slice(4).match(/.{1,2}/g),
+                                                ];
 
-                                                    // Posisi tetap konsisten
-                                                    const codeStartY = 280; // Posisi tetap di bawah
-                                                    ctx.textAlign = "center";
-                                                    ctx.fillText(certificationText, width / 2, codeStartY);
+                                                const codeStartY = 280;
+                                                ctx.textAlign = "center";
+                                                ctx.fillText(certificationText, width / 2, codeStartY);
 
-                                                    // Gambar kode sertifikasi dalam kotak
-                                                    const boxSize = 20; // Ukuran kotak
-                                                    const totalWidth =
-                                                    formattedCode.length * boxSize + (formattedCode.length - 1) * boxSpacing;
-                                                    const startX = (width - totalWidth) / 2;
-                                                    const startY = codeStartY + lineSpacing;
+                                                // Gambar kode dalam kotak
+                                                const boxSize = 20;
+                                                const totalWidth =
+                                                    formattedCode.length * boxSize +
+                                                    (formattedCode.length - 1) * boxSpacing;
+                                                const startX = (width - totalWidth) / 2;
+                                                const startY = codeStartY + lineSpacing;
 
-                                                    formattedCode.forEach((char, i) => {
+                                                formattedCode.forEach((char, i) => {
                                                     const x = startX + i * (boxSize + boxSpacing);
 
-                                                    // Gambar kotak
                                                     ctx.strokeStyle = "#000";
                                                     ctx.lineWidth = 1;
                                                     ctx.strokeRect(x, startY, boxSize, boxSize);
 
-                                                    // Gambar huruf di dalam kotak
                                                     ctx.fillStyle = "#000";
                                                     ctx.textAlign = "center";
                                                     ctx.textBaseline = "middle";
                                                     ctx.fillText(char, x + boxSize / 2, startY + boxSize / 2);
-                                                    });
+                                                });
 
-                                                    // Tambahkan border
-                                                    ctx.strokeStyle = "#cccccc";
-                                                    ctx.lineWidth = 2;
-                                                    ctx.strokeRect(10, 10, width - 20, height - 20);
+                                                ctx.strokeStyle = "#cccccc";
+                                                ctx.lineWidth = 2;
+                                                ctx.strokeRect(10, 10, width - 20, height - 20);
 
-                                                    // Unduh gambar
-                                                    canvas.toBlob((blob) => {
+                                                // Unduh gambar
+                                                canvas.toBlob((blob) => {
                                                     if (blob) {
                                                         const url = URL.createObjectURL(blob);
                                                         const link = document.createElement("a");
                                                         link.href = url;
-                                                        link.download = `batik-${batik.code_batik || "qr"}.png`;
+                                                        link.download = `Batik-${batik.code_batik || "qr"}.png`;
                                                         link.click();
                                                         URL.revokeObjectURL(url);
+
+                                                        Swal.fire({
+                                                            icon: "success",
+                                                            title: "Berhasil",
+                                                            text: "QR Code berhasil dicetak!",
+                                                        });
                                                     }
-                                                    }, "image/png");
-                                                } catch (error) {
-                                                    console.error("Error:", error);
-                                                    Swal.fire({
+                                                }, "image/png");
+                                            } catch (error) {
+                                                console.error("Error:", error);
+                                                Swal.fire({
                                                     icon: "error",
                                                     title: "Error",
                                                     text: "Gagal mengunduh gambar. Silakan coba lagi.",
-                                                    });
-                                                }
-                                                }}
-                                                className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
-                                                aria-label="Print Qr COde"
-                                            >
-                                                <FiPrinter className="text-base" />
-                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                Print
-                                                </span>
-                                            </button>
-                                            )}
-
-                                    </div>
+                                                });
+                                            }
+                                        }}
+                                        id="download-btn"
+                                        className="bg-gray-500 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
+                                        aria-label="Print Qr Code"
+                                    >
+                                        <FiPrinter className="text-base" />
+                                        <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            Print
+                                        </span>
+                                    </button>
+                                )}
                                 </div>
                             </div>
                         ))}
@@ -970,6 +1005,135 @@ export default function BatikIndex({ user, batikData, title, members, batikDescr
 
                 </div>
             </div>
+
+            
+
+            {/* Detail Modal */}
+            {selectedBatik && (
+                <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
+                    <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-2xl p-6 relative overflow-y-auto max-h-screen">
+                        {/* Close Button */}
+                        {/* <button
+                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl"
+                            onClick={() => setSelectedBatik(null)}
+                        >
+                            <FiX className="text-2xl" />
+                        </button> */}
+
+                       {/* Modal Header */}
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl font-extrabold text-gray-700 mb-2 tracking-wide">
+                                {selectedBatik.name || "-"}
+                            </h2>
+                            <p className="text-md text-gray-600 italic">
+                                Informasi Detail Batik
+                            </p>
+                        </div>
+
+                        <hr className="mb-6" />
+
+                        {/* Modal Content */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Image Section */}
+                            <div className="flex-shrink-0 md:col-span-2 flex justify-center">
+                                <img
+                                    src={`/storage/${selectedBatik.image}`}
+                                    alt={selectedBatik.name}
+                                    className="w-full max-w-xs h-48 object-cover rounded-lg shadow-lg"
+                                />
+                            </div>
+
+                            {/* Member Icon */}
+                            <div className="flex items-center gap-2">
+                                <CiUser className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Anggota MPIG-BTMC:</strong> {selectedBatik.member?.name || "-"}
+                                </span>
+                            </div>
+
+                            {/* Nama Toko */}
+                            <div className="flex items-center gap-2">
+                                <PiStorefrontThin className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Nama Toko:</strong> {selectedBatik.member?.store_name || "-"}
+                                </span>
+                            </div>
+
+                            {/* Pembuat Motif */}
+                            <div className="flex items-center gap-2">
+                                <PiPaintBrushLight className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Pembuat Motif:</strong> {selectedBatik.motif_creator || "-"}
+                                </span>
+                            </div>
+
+                            {/* Tukang Penembok */}
+                            <div className="flex items-center gap-2">
+                                <TfiPaintBucket className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Penembok:</strong> {selectedBatik.bricklayer_name || "-"}
+                                </span>
+                            </div>
+
+                            {/* Bahan */}
+                            <div className="flex items-center gap-2">
+                                <SlLayers className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Bahan Kain:</strong> {selectedBatik.materials || "-"}
+                                </span>
+                            </div>
+
+                            {/* Bahan Pewarna */}
+                            <div className="flex items-center gap-2">
+                                <CiDroplet  className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Bahan Pewarna:</strong> {selectedBatik.color_materials || "-"}
+                                </span>
+                            </div>
+
+                            {/* Quality Icon */}
+                            <div className="flex items-center gap-2">
+                                <CiBarcode className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Kode Batik: </strong> 
+                                    {`M-${selectedBatik.code_batik.slice(1, 4)}-${selectedBatik.code_batik.slice(4).match(/.{1,2}/g)?.join("-") || ""}`}
+
+                                </span>
+                            </div>
+
+                            {/* Tahun Produksi */}
+                            <div className="flex items-center gap-2">
+                                <CiCalendarDate className="text-blue-500 text-lg" />
+                                <span className="text-sm text-gray-700">
+                                    <strong className="font-bold">Tahun Produksi:</strong> {selectedBatik.production_year || "-"}
+                                </span>
+                            </div>
+
+
+                            {/* Description Icon */}
+                            <div className="md:col-span-2 flex items-start gap-2">
+                                <p className="text-sm text-gray-700 text-justify">{selectedBatik.description || "-"}</p>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-8 flex justify-end gap-4">
+                            {/* Close Button */}
+                            <button
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-shadow shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex items-center space-x-2"
+                                onClick={() => setSelectedBatik(null)}
+                                >
+                                <FiXCircle className="text-lg" />
+                                <span>Close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+
 
 
             {isModalOpen && (

@@ -14,6 +14,9 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // sans: ['Roboto', ...defaultTheme.fontFamily.sans],
+                playfair: ['"Playfair Display"', 'serif'],                 
+
             },
         },
     },

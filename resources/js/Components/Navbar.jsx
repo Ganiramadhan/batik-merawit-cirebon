@@ -23,6 +23,8 @@ const Navbar = ({ user }) => {
                             {/* <NavLink href={route('fish.index')} active={route().current('fish.index')}>Product</NavLink> */}
                             <NavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</NavLink>
                             <NavLink href={route('member.index')} active={route().current('member.index')}>Perajin Batik</NavLink>
+                            <NavLink href={route('backlayer.index')} active={route().current('backlayer.index')}>Penembok</NavLink>
+                            <NavLink href={route('motif_creator.index')} active={route().current('motif_creator.index')}>Pembuat Motif</NavLink>
                             {/* <NavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</NavLink> */}
                         </div>
                     </div>
@@ -90,6 +92,8 @@ const Navbar = ({ user }) => {
                     {/* <ResponsiveNavLink href={route('fish.index')} active={route().current('fish.index')}>Product</ResponsiveNavLink> */}
                     <ResponsiveNavLink href={route('batik.index')} active={route().current('batik.index')}>Batik</ResponsiveNavLink>
                     <ResponsiveNavLink href={route('member.index')} active={route().current('member.index')}>Perajin Batik</ResponsiveNavLink>
+                    <ResponsiveNavLink href={route('backlayer.index')} active={route().current('backlayer.index')}>Penembok</ResponsiveNavLink>
+                    <ResponsiveNavLink href={route('motif_creator.index')} active={route().current('motif_creator.index')}>Pembuat Motif</ResponsiveNavLink>
                     {/* <ResponsiveNavLink href={route('transaction.index')} active={route().current('transaction.index')}>Transaksi</ResponsiveNavLink> */}
                 </div>
 

@@ -60,7 +60,7 @@ class MemberController extends Controller
                 'place_of_birth' => 'required|string|max:100',
                 'gender' => 'required|string', 
                 'employees' => 'required|integer|min:0', 
-                'image' => 'nullable|image|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',  // added file type validation
             ]);
     
             // Tambahkan nomor anggota yang dihasilkan secara otomatis
@@ -75,6 +75,13 @@ class MemberController extends Controller
     
             // Upload gambar jika ada
             if ($request->hasFile('image')) {
+                // Check if the uploaded image is less than or equal to 2 MB
+                if ($request->file('image')->getSize() > 2048000) { // 2 MB in bytes
+                    return response()->json([
+                        'message' => 'Gambar tidak boleh lebih dari 2 MB.',
+                    ], 400);
+                }
+    
                 $validatedData['image'] = $request->file('image')->store('images', 'public');
             }
     
@@ -95,6 +102,7 @@ class MemberController extends Controller
             ], 500);
         }
     }
+    
     
 
     
@@ -119,38 +127,60 @@ class MemberController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)
-        {
-            $validated = $request->validate([
-                'member_number' => 'required|string|max:255',
-                'name' => 'required|string|max:255',
-                'store_name' => 'required|string|max:255',  
-                'email' => 'required|email|max:255',  
-                'phone_number' => 'nullable|string', 
-                'address' => 'required|string',  
-                'place_of_birth' => 'required|string|max:100', 
-                'gender' => 'required|string|max:100', 
-                'employees' => 'required|string|max:100',
-            ]);
-            $member = Member::findOrFail($id);
-            if ($request->hasFile('image')) {
-                if ($member->image && Storage::disk('public')->exists($member->image)) {
-                    Storage::disk('public')->delete($member->image);
-                }
-                // Simpan gambar baru
-                $validated['image'] = $request->file('image')->store('images', 'public');
-            } else {
-                $validated['image'] = $member->image;
+{
+    try {
+        $validated = $request->validate([
+            'member_number' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'store_name' => 'required|string|max:255',  
+            'email' => 'required|email|max:255',  
+            'phone_number' => 'nullable|string', 
+            'address' => 'required|string',  
+            'place_of_birth' => 'required|string|max:100', 
+            'gender' => 'required|string|max:100', 
+            'employees' => 'required|string|max:100',
+        ]);
+
+        $member = Member::findOrFail($id);
+
+        // Check if the image exists and delete it if necessary
+        if ($request->hasFile('image')) {
+            // Validate file size (not exceeding 2 MB)
+            if ($request->file('image')->getSize() > 2048000) { 
+                return response()->json([
+                    'message' => 'Gambar tidak boleh lebih dari 2 MB.',
+                ], 400);
             }
-        
-        
-            $member->update($validated);
-        
-            return response()->json([
-                'message' => 'Data Member berhasil diperbarui.',
-                'member' => $member,
-                'image_url' => $validated['image'] ? asset('storage/' . $validated['image']) . '?t=' . time() : null,
-            ]);
+
+            // Delete the old image if it exists
+            if ($member->image && Storage::disk('public')->exists($member->image)) {
+                Storage::disk('public')->delete($member->image);
+            }
+
+            // Save the new image
+            $validated['image'] = $request->file('image')->store('images', 'public');
+        } else {
+            // If no new image is uploaded, keep the old image
+            $validated['image'] = $member->image;
         }
+
+        // Update the member's data
+        $member->update($validated);
+
+        // Return the updated member data as a response
+        return response()->json([
+            'message' => 'Data Member berhasil diperbarui.',
+            'member' => $member,
+        ]);
+    } catch (\Exception $e) {
+        // Handle errors and return an error response
+        return response()->json([
+            'message' => 'Terjadi kesalahan saat memperbarui data Member.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
         public function updateMemberNumbers()
         {

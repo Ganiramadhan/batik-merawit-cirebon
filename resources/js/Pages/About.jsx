@@ -5,7 +5,7 @@ import { FiHome, FiBox, FiInfo } from "react-icons/fi";
 import sejarahImage from '../../images/sejarah.png'
 
 
-export default function AboutPage() {
+export default function AboutPage({user}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeMenu, setActiveMenu] = useState("about");
 
@@ -43,6 +43,8 @@ export default function AboutPage() {
                 setIsMenuOpen={setIsMenuOpen}
                 activeMenu={activeMenu}
                 handleMenuClick={handleMenuClick}
+                user={user}  // Pass user prop
+
             >
                 <nav className="flex justify-between items-center py-4 px-6 bg-gradient-to-r from-orange-500 to-red-500 shadow-md">
                     <div className="text-white text-2xl font-bold">Logo</div>

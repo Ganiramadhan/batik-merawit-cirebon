@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import WelcomeFooter from "@/Components/WelcomeFooter";
 import { FiHome, FiBox, FiInfo, FiCode, FiCalendar, FiDroplet, FiLayers, FiUser } from "react-icons/fi";
 
-export default function AllProducts({ batikData }) {
+export default function AllProducts({ batikData, user }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeMenu, setActiveMenu] = useState("product");
 
@@ -42,6 +42,7 @@ export default function AllProducts({ batikData }) {
                 setIsMenuOpen={setIsMenuOpen}
                 activeMenu={activeMenu}
                 handleMenuClick={handleMenuClick}
+                user={user}  // Pass user prop
             >
                 <nav className="flex justify-between items-center py-4 px-6 bg-orange-600 shadow-lg">
                     <div className="text-white text-2xl font-bold">Logo</div>

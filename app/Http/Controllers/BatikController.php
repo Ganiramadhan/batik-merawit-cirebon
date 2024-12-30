@@ -67,7 +67,29 @@ class BatikController extends Controller
             return Inertia::render('Batik/QrCode', [
                 'batik' => $batik,
             ]);
+            
         }
+
+
+        public function getLastBatikCode()
+        {
+            // Ambil nomor motif terakhir dari kolom code_batik
+            $lastMotifCode = Batik::select('code_batik')
+                ->orderBy('id', 'desc') // Ambil data terakhir berdasarkan ID
+                ->first();
+
+            if ($lastMotifCode) {
+                // Ekstrak nomor motif (3 digit pertama setelah prefix 'M')
+                $lastNumber = substr($lastMotifCode->code_batik, 1, 3);
+            } else {
+                $lastNumber = '000'; // Jika belum ada data, mulai dari '000'
+            }
+
+            return response()->json([
+                'last_motif_code' => $lastNumber,
+            ]);
+        }
+
 
         public function store(Request $request)
         {
@@ -131,7 +153,7 @@ class BatikController extends Controller
                 'quality' => 'required|string|max:255',
                 // 'price' => 'required|numeric|min:0',
                 'description' => 'nullable|string|max:1000',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg',
                 'member_id' => 'nullable|exists:members,id',
                 'motif_creator' => 'nullable|string|max:255',
                 'bricklayer_name' => 'nullable|string|max:255',
@@ -179,6 +201,7 @@ class BatikController extends Controller
                 'member' => $member, 
             ]);
         }
+            
         
 
 

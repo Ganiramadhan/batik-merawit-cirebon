@@ -43,6 +43,8 @@ class WelcomeController extends Controller
     
     public function product()
     {    
+        $user = Auth::user();
+
         // Retrieve all batik data with related members
         $batikData = Batik::with('member')->get();
     
@@ -60,11 +62,17 @@ class WelcomeController extends Controller
             'members' => $members,
             'totalBatik' => $totalBatik,
             'totalMember' => $totalMember,
+            'user' => $user
         ]);
     }
 
     public function about () {
-        return Inertia::render('About');
+        $user = Auth::user();
+
+        return Inertia::render('About', [
+            'title' => 'About',
+            'user' => $user
+        ]);
     }
 }
 

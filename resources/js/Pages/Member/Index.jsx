@@ -10,7 +10,10 @@ import defaultLogo from '../../../images/newBTMC.png';
 import qrBackgroundMember from '../../../images/backgroundMember.png';
 import { 
     FiEdit, FiTrash, FiPlus, FiUser, FiX, FiSave, FiSearch, FiChevronLeft, FiChevronRight, FiInfo, 
-    FiHome, FiMail, FiPhone, FiMapPin, FiUsers, FiXCircle, FiLoader, FiPrinter, FiUserCheck} from 'react-icons/fi';
+    FiUsers, FiXCircle, FiLoader, FiPrinter} from 'react-icons/fi';
+
+import { CiBarcode, CiUser ,CiLocationOn, CiMail, CiPhone, CiHome  } from "react-icons/ci";
+import { PiStorefrontThin } from "react-icons/pi";
 
 
 export default function MemberData({ user, title, members }) {
@@ -20,7 +23,7 @@ export default function MemberData({ user, title, members }) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
-    const [itemsPerPage, setItemsPerPage] = useState(5); 
+    const [itemsPerPage, setItemsPerPage] = useState(10); 
     const [imagePreview, setImagePreview] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -126,37 +129,45 @@ export default function MemberData({ user, title, members }) {
     
     
     
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
         // Validation for image when not in edit mode
         if (!isEditMode && !newMember.image) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Validasi',
-                text: 'Gambar tidak boleh kosong.',
+                title: 'Validation',
+                text: 'Image cannot be empty.',
             });
             return;
         }
-
+    
+        // Validate image size (max 2 MB)
+        if (newMember.image && newMember.image.size > 2 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation',
+                text: 'Ukuran gambar tidak boleh lebih dari 2 MB.',
+            });
+            return;
+        }
+    
         // Prepare form data
         const formData = new FormData();
         for (const key in newMember) {
             formData.append(key, newMember[key]);
         }
-
-        setIsSubmitting(true); 
-
+    
+        setIsSubmitting(true);
         try {
             let response;
-
+    
             // Edit mode (update)
             if (isEditMode) {
                 response = await axios.post(`/member/${newMember.id}`, formData);
-
+    
                 if (response.status === 200 || response.status === 204) {
-                    const updatedImage = response?.data?.image;
+                    const updatedImage = response?.data?.member?.image;
                     setFilteredMemberData((prevData) => {
                         return prevData.map((item) =>
                             item.id === newMember.id
@@ -169,10 +180,10 @@ export default function MemberData({ user, title, members }) {
                                 : item
                         );
                     });
-
+    
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil',
+                        title: 'Success',
                         text: response.data.message,
                     });
                 } else {
@@ -187,31 +198,31 @@ export default function MemberData({ user, title, members }) {
                         ...response.data.member,
                         image: response.data.member.image || '',
                         qr_code: response.data.member.qr_code || {},
-
+    
                     },
                 ]);
-
+    
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil',
+                    title: 'Success',
                     text: response.data.message,
                 });
             }
-
-            setIsModalOpen(false); 
-            resetForm(); 
+    
+            setIsModalOpen(false);
+            resetForm();
         } catch (error) {
             console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Terjadi Kesalahan',
-                text: 'Tidak dapat memproses permintaan.',
+                title: 'Error',
+                text: error.response?.data?.error || 'Failed to submit data to the server.',
             });
         } finally {
-            setIsSubmitting(false); 
+            setIsSubmitting(false);
         }
     };
-
+    
 
 
     
@@ -270,7 +281,7 @@ export default function MemberData({ user, title, members }) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Terjadi Kesalahan',
-                        text: 'Data batik tidak dapat dihapus.',
+                        text: 'Data perajin tidak dapat dihapus.',
                     });
                 }
             }
@@ -287,6 +298,18 @@ export default function MemberData({ user, title, members }) {
             console.log('Data tidak ditemukan');
         }
     };
+
+
+    // Function to format the date to DD-MM-YYYY
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); 
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    };
+
+
 
 
 
@@ -378,35 +401,37 @@ export default function MemberData({ user, title, members }) {
                 </div>
 
 
-
                 {/* Table for Member Data */}
                 <div className="overflow-hidden bg-white rounded-lg shadow-xl border border-gray-200">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full table-auto">
-                            <thead className="bg-blue-500 text-white">
+                        <table className="table-auto border-collapse w-full text-sm border border-gray-300 rounded-lg shadow-md">
+                            <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                                 <tr>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">#</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nomor MPIG-BTMC</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Anggota MPIG-BTMC</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nama Toko</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Nomor Telepon</th>
-                                    <th className="px-6 py-4 text-sm font-semibold text-left">Alamat</th>
+                                    {/* <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">#</th> */}
+                                    <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">Nomor MPIG-BTMC</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">Anggota MPIG-BTMC</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">Nama Toko</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">Nomor Telepon</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-left border border-gray-300">Alamat</th>
                                     {/* <th className="px-6 py-4 text-sm font-semibold text-left">Logo</th> */}
-                                    <th className="px-6 py-4 text-sm font-semibold text-center">Actions</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-center border border-gray-300">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {currentData.length > 0 ? (
                                     currentData.map((member, index) => (
-                                    <tr key={member.id} className="border-b hover:bg-gray-100 transition-all">
-                                        <td className="px-6 py-4 text-sm text-gray-800 font-medium">
+                                    <tr
+                                            key={member.id}
+                                            className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100 transition-all`}
+                                            >                             
+                                        {/* <td className="px-6 py-4 text-sm text-gray-800 font-medium">
                                         {String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-800">{member.member_number}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-800">{member.name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-800">{member.store_name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-800">{member.phone_number}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-800">
+                                        </td> */}
+                                        <td className="px-6 py-4 text-sm text-gray-800 border border-gray-300">{member.member_number}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-800 border border-gray-300">{member.name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-800 border border-gray-300">{member.store_name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-800 border border-gray-300">{member.phone_number}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-800 border border-gray-300">
                                             <div className="relative">
                                                 <span className="truncate max-w-xs" title={member.address}>
                                                     {member.address.length > 50 ? `${member.address.slice(0, 50)}...` : member.address}
@@ -429,13 +454,13 @@ export default function MemberData({ user, title, members }) {
 
                                             {/* Tombol Detail */}
                                             <button
-                                            className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
-                                            onClick={() => handleDetailClick(member.id)}
-                                            >
-                                            <FiInfo className="text-lg m-1" />
-                                            <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                Detail
-                                            </span>
+                                                className="bg-gray-500 text-white p-1 rounded-md flex items-center justify-center hover:bg-gray-600 transition-all shadow-sm relative group"
+                                                onClick={() => handleDetailClick(member.id)}
+                                                >
+                                                <FiInfo className="text-lg m-1" />
+                                                <span className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-1 text-xs text-white bg-black p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    Detail
+                                                </span>
                                             </button>
 
                                             {/* Tombol Hapus */}
@@ -452,23 +477,21 @@ export default function MemberData({ user, title, members }) {
                                             {member.qr_code && (
                                                 <button
                                                     onClick={async (e) => {
-                                                        // Ambil tombol yang diklik
                                                         const button = e.target.closest("button");
-                                                        if (button.disabled) return; // Jika tombol sudah disabled, hentikan eksekusi
+                                                        if (button.disabled) return;
 
-                                                        button.disabled = true; // Nonaktifkan tombol
+                                                        button.disabled = true;
 
-                                                        const scale = 10; // Resolusi tinggi
-                                                        const width = 450; // Lebar canvas
-                                                        const height = 300; // Tinggi canvas
-                                                        const logoSize = 50; // Ukuran logo
-                                                        const qrSize = 70; // Ukuran QR Code
+                                                        const scale = 10;
+                                                        const width = 450;
+                                                        const height = 300;
+                                                        const logoSize = 55;
+                                                        const qrSize = 50; // Ukuran QR Code diperkecil
 
                                                         try {
                                                             const canvas = document.createElement("canvas");
                                                             const ctx = canvas.getContext("2d");
 
-                                                            // Setup resolusi canvas
                                                             canvas.width = width * scale;
                                                             canvas.height = height * scale;
                                                             ctx.scale(scale, scale);
@@ -500,35 +523,100 @@ export default function MemberData({ user, title, members }) {
                                                             // Gambar background
                                                             ctx.drawImage(background, 0, 0, width, height);
 
-                                                            // Gambar logo
-                                                            const logoOffset = (width - logoSize * 3 - 10) / 2; // Menjaga jarak antar logo
+                                                            // Gambar logo IGI dan BTMC
+                                                            const logoOffset = (width - logoSize * 3 - 10) / 2;
                                                             ctx.drawImage(btmcImage, logoOffset, 20, logoSize, logoSize);
                                                             ctx.drawImage(igiImage, logoOffset + logoSize + 5, 20, logoSize, logoSize);
-                                                            ctx.drawImage(memberImage, logoOffset + (logoSize + 5) * 2, 20, logoSize, logoSize);
 
-                                                            const textYOffset = 120; // Adjusted to move the text up
-                                                            const qrYOffset = height - qrSize - 40; // Keep the QR code position the same
+                                                                  // Penyesuaian gambar member
+                                                            let memberImageWidth, memberImageHeight;
 
-                                                            // Tambahkan teks informasi di atas QR code
-                                                            ctx.font = `${2 * scale}px Arial`;
+                                                            const aspectRatio = memberImage.width / memberImage.height;
+
+                                                            if (aspectRatio > 1) {
+                                                                // Landscape: Perbesar lebih lebar, tapi kalau terlalu lebar perkecil sedikit lebih banyak
+                                                                memberImageWidth = logoSize * 1.8; // Lebih kecil sedikit
+                                                                memberImageHeight = (memberImage.height / memberImage.width) * memberImageWidth;
+                                                                if (memberImageHeight < logoSize) {
+                                                                    // Jika tinggi terlalu kecil, sesuaikan
+                                                                    memberImageHeight = logoSize;
+                                                                    memberImageWidth = memberImageHeight * aspectRatio;
+                                                                }
+
+                                                                // Jika gambar terlalu lebar, perkecil lebih sedikit
+                                                                if (memberImageWidth > logoSize * 2) {
+                                                                    memberImageWidth = logoSize * 1.9;
+                                                                    memberImageHeight = (memberImage.height / memberImage.width) * memberImageWidth;
+                                                                }
+
+                                                                ctx.drawImage(
+                                                                    memberImage,
+                                                                    logoOffset + (logoSize + 5) * 2,
+                                                                    20 + (logoSize - memberImageHeight) / 2,
+                                                                    memberImageWidth,
+                                                                    memberImageHeight
+                                                                );
+                                                            } else {
+                                                                // Portrait: Tinggi diperbesar, tapi kalau terlalu tinggi perkecil sedikit lebih banyak
+                                                                memberImageHeight = logoSize * 1.1; // Lebih kecil sedikit
+                                                                memberImageWidth = (memberImage.width / memberImage.height) * memberImageHeight;
+                                                                if (memberImageWidth < logoSize * 0.7) {
+                                                                    // Jika lebar terlalu kecil, sesuaikan
+                                                                    memberImageWidth = logoSize * 0.7;
+                                                                    memberImageHeight = memberImageWidth / aspectRatio;
+                                                                }
+
+                                                                // Jika gambar terlalu tinggi, perkecil sedikit lebih banyak
+                                                                if (memberImageHeight > logoSize * 1.2) {
+                                                                    memberImageHeight = logoSize * 1.15;
+                                                                    memberImageWidth = (memberImage.width / memberImage.height) * memberImageHeight;
+                                                                }
+
+                                                                ctx.drawImage(
+                                                                    memberImage,
+                                                                    logoOffset + (logoSize + 5) * 2 + (logoSize - memberImageWidth) / 2,
+                                                                    20,
+                                                                    memberImageWidth,
+                                                                    memberImageHeight
+                                                                );
+                                                            }
+
+                                                            // Tambahkan teks informasi utama
+                                                            const textYOffset = 100;
                                                             ctx.fillStyle = "#333333";
                                                             ctx.textAlign = "center";
-                                                            const certificationText = "SEDIA\nBATIK TULIS MERAWIT CIREBON\nKUALITAS INDIKASI GEOGRAFIS (IG)";
-                                                            const lines = certificationText.split("\n");
+                                                            ctx.font = `${4 * scale}px font-playfair`;
+                                                            ctx.fillText(member.store_name || "-", width / 2, textYOffset + 30);
+                                                            ctx.font = `${1.5 * scale}px sans-serif`;
+                                                            ctx.fillText("Menyediakan Batik Tulis Merawit Cirebon", width / 2, textYOffset + 50);
+                                                            ctx.font = `${1.2 * scale}px arial`;
+                                                            ctx.fillText("KUALITAS INDIKASI GEOGRAFIS (IG)", width / 2, textYOffset + 70);
 
-                                                            let yPosition = textYOffset;
-                                                            lines.forEach((line) => {
-                                                                ctx.fillText(line, width / 2, yPosition);
-                                                                yPosition += 20; // Adjust line spacing if needed
+                                                            // Tambahkan nomor anggota dan alamat
+                                                            const footerYOffset = height - 20;
+                                                            ctx.font = `${1.3 * scale}px sans-serif`;
+                                                            ctx.textAlign = "center";
+                                                            ctx.fillText(`No. Anggota MPIG: ${member.member_number || "-"}`, width / 2, footerYOffset - 55);
+                                                            ctx.font = `${0.9 * scale}px Arial`;
+
+                                                            const address = member.address || "-";
+                                                            const firstLine = address.slice(0, 43);
+                                                            const secondLine = address.slice(43, 93);
+
+                                                            const addressLines = [firstLine, secondLine].filter(line => line.length > 0);
+                                                            addressLines.forEach((line, index) => {
+                                                                ctx.fillText(line, width / 2, footerYOffset - 40 + index * 15);
                                                             });
 
-                                                            // Gambar QR Code di tengah bawah
-                                                            ctx.drawImage(qrImage, (width - qrSize) / 2, qrYOffset, qrSize, qrSize);
+                                                            // Gambar QR Code di kanan bawah
+                                                            const qrXOffset = width - qrSize - 30;
+                                                            const qrYOffset = height - qrSize - 45; // Posisi disesuaikan
+                                                            ctx.drawImage(qrImage, qrXOffset, qrYOffset, qrSize, qrSize);
 
                                                             // Tambahkan border di sekitar QR Code
                                                             ctx.strokeStyle = "#FFA500";
                                                             ctx.lineWidth = 2;
-                                                            ctx.strokeRect((width - qrSize) / 2 - 7, qrYOffset - 7, qrSize + 14, qrSize + 14);
+                                                            ctx.strokeRect(qrXOffset - 5, qrYOffset - 5, qrSize + 10, qrSize + 10);
 
                                                             // Tambahkan border luar
                                                             ctx.strokeStyle = "#cccccc";
@@ -545,13 +633,12 @@ export default function MemberData({ user, title, members }) {
                                                                     link.click();
                                                                     URL.revokeObjectURL(url);
 
-                                                                    // SweetAlert berhasil
                                                                     Swal.fire({
                                                                         icon: "success",
                                                                         title: "Berhasil",
                                                                         text: "QR Code berhasil dicetak!",
                                                                     }).then(() => {
-                                                                        button.disabled = false; // Aktifkan kembali tombol setelah klik OK
+                                                                        button.disabled = false;
                                                                     });
                                                                 }
                                                             }, "image/png");
@@ -562,11 +649,11 @@ export default function MemberData({ user, title, members }) {
                                                                 title: "Error",
                                                                 text: "Gagal mengunduh gambar. Silakan coba lagi.",
                                                             }).then(() => {
-                                                                button.disabled = false; // Aktifkan kembali tombol setelah klik OK
+                                                                button.disabled = false;
                                                             });
                                                         }
                                                     }}
-                                                    className="bg-gray-500 text-white py-2 px-3 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
+                                                    className="bg-gray-500 text-white py-2 px-2 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-600 hover:shadow-md transition-all duration-200 ease-in-out group relative"
                                                     aria-label="Print Qr Code"
                                                 >
                                                     <FiPrinter className="text-base" />
@@ -575,7 +662,6 @@ export default function MemberData({ user, title, members }) {
                                                     </span>
                                                 </button>
                                             )}
-
 
                                         </div>
                                         </td>
@@ -719,13 +805,13 @@ export default function MemberData({ user, title, members }) {
                                 <img
                                     src={`/storage/${selectedMember.image}`}
                                     alt="Logo Anggota"
-                                    className="w-24 h-24 object-cover rounded-lg "
+                                    className="w-24 h-auto "
                                 />
                             </div>
                         )}
 
                         <div className="flex items-center space-x-3">
-                            <FiUserCheck className="text-gray-700 text-lg" />
+                            <CiBarcode className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Nomor Anggota MPIG-BTMC:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.member_number}</span>
@@ -733,49 +819,53 @@ export default function MemberData({ user, title, members }) {
                         </div>
 
                         <div className="flex items-center space-x-3">
-                            <FiUser className="text-gray-700 text-lg" />
+                            <CiUser className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Nama Anggota MPIG-BTMC:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.name}</span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiHome className="text-gray-700 text-lg" />
+                            <PiStorefrontThin className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Nama Merek (Toko):</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.store_name}</span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiMail className="text-gray-700 text-lg" />
+                            <CiMail className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Email:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.email}</span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiPhone className="text-gray-700 text-lg" />
+                            <CiPhone className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Nomor HP:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.phone_number}</span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiMapPin className="text-gray-700 text-lg" />
+                            <CiHome className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Tempat Tanggal Lahir:</strong>{' '}
-                                <span className="text-gray-900">{selectedMember.place_of_birth}</span>
+                                <span className="text-gray-900">
+                                    {selectedMember.place_of_birth
+                                        ? `${selectedMember.place_of_birth.split(',')[0]}, ${formatDate(selectedMember.place_of_birth.split(',')[1].trim())}`
+                                        : ''}
+                                </span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiUsers className="text-gray-700 text-lg" />
+                            <FiUsers className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Jumlah Pekerja:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.employees}</span>
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <FiMapPin className="text-gray-700 text-lg" />
+                            <CiLocationOn  className="text-blue-500 text-lg" />
                             <p>
                                 <strong>Alamat:</strong>{' '}
                                 <span className="text-gray-900">{selectedMember.address}</span>
@@ -834,17 +924,6 @@ export default function MemberData({ user, title, members }) {
                     {/* Form */}
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Nomor Member */}
-                            {/* <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Anggota MPIG-BTMC</label>
-                                <input
-                                    type="text"
-                                    value={newMember.member_number || ''}
-                                    onChange={(e) => setNewMember({ ...newMember, member_number: e.target.value })}
-                                    className="p-3 border border-gray-300 rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div> */}
                             {/* Nama Member */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nama Anggota MPIG-BTMC</label>
@@ -857,22 +936,23 @@ export default function MemberData({ user, title, members }) {
                                 />
                             </div>
 
-                           {/* Tempat Tanggal Lahir */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Tempat Tanggal Lahir</label>
+                         {/* Tempat dan Tanggal Lahir */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Tempat dan Tanggal Lahir</label>
                                 <div className="flex gap-4">
                                     {/* Input untuk Tempat Lahir */}
                                     <input
                                         type="text"
                                         placeholder="Tempat Lahir"
                                         value={newMember.place_of_birth_temp || ''}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                            const tempPlace = e.target.value;
                                             setNewMember((prev) => ({
                                                 ...prev,
-                                                place_of_birth_temp: e.target.value,
-                                                place_of_birth: `${e.target.value}, ${prev.place_of_birth_date || ''}`.trim(),
-                                            }))
-                                        }
+                                                place_of_birth_temp: tempPlace,
+                                                place_of_birth: `${tempPlace}, ${prev.place_of_birth_date || ''}`.trim(),
+                                            }));
+                                        }}
                                         className="p-3 border border-gray-300 rounded-lg w-1/2 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
@@ -880,18 +960,20 @@ export default function MemberData({ user, title, members }) {
                                     <input
                                         type="date"
                                         value={newMember.place_of_birth_date || ''}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                            const birthDate = e.target.value;
                                             setNewMember((prev) => ({
                                                 ...prev,
-                                                place_of_birth_date: e.target.value,
-                                                place_of_birth: `${prev.place_of_birth_temp || ''}, ${e.target.value}`.trim(),
-                                            }))
-                                        }
+                                                place_of_birth_date: birthDate,
+                                                place_of_birth: `${prev.place_of_birth_temp || ''}, ${birthDate}`.trim(),
+                                            }));
+                                        }}
                                         className="p-3 border border-gray-300 rounded-lg w-1/2 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
                                 </div>
                             </div>
+
 
                             {/* Jenis Kelamin */}
                             <div>
@@ -985,14 +1067,12 @@ export default function MemberData({ user, title, members }) {
                                         <img
                                             src={imagePreview || newMember.imagePreview} 
                                             alt="Preview"
-                                            className="w-48 h-24 object-cover rounded-lg"
+                                            className="w-48 h-auto"
                                         />
                                     </div>
                                 ) : null}
                             </div>
                         </div>
-
-
                         <div className="flex justify-end mt-4 space-x-3">
                             {/* Cancel Button */}
                             <button

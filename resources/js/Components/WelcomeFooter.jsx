@@ -5,12 +5,12 @@ export default function WelcomeFooter() {
         <footer className="bg-white py-8 border-t border-gray-200">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
                 {/* Address Section */}
-                <div>
+                {/* <div>
                     <h4 className="text-lg font-bold mb-4">Address</h4>
                     <p className="text-gray-600 leading-relaxed">
                         Jl. Panembahan Utara No.01, Panembahan, Kec. Plered, Kabupaten Cirebon, Jawa Barat 45154.
                     </p>
-                </div>
+                </div> */}
 
                 {/* Get in Touch Section */}
                 <div>
