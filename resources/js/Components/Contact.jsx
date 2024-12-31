@@ -40,7 +40,7 @@
                     id="name"
                     name="name"
                     placeholder="Masukkan nama Anda"
-                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-orange-200"
+                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                     required
                     />
                 </div>
@@ -51,7 +51,7 @@
                     id="email"
                     name="email"
                     placeholder="Masukkan email Anda"
-                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-orange-200"
+                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                     required
                     />
                 </div>
@@ -62,13 +62,13 @@
                     name="message"
                     rows="4"
                     placeholder="Tuliskan pesan Anda di sini"
-                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-orange-200"
+                    className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                     required
                     ></textarea>
                 </div>
                 <button
                     type="submit"
-                    className="bg-orange-500 text-white px-6 py-3 rounded shadow hover:bg-orange-600 transition-all"
+                    className="bg-blue-500 text-white px-6 py-3 rounded shadow hover:bg-blue-600 transition-all"
                     disabled={loading} // Disable the button when loading
                 >
                     {loading ? (

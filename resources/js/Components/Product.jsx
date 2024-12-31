@@ -23,24 +23,24 @@ import product3 from '../../images/product3.jpg'
                 </p>
                 <ul className="space-y-4 text-lg mb-6">
                 <li className="flex items-center text-gray-700">
-                    <FiCheckCircle className="text-orange-500 text-2xl mr-4" />
+                    <FiCheckCircle className="text-blue-500 text-2xl mr-4" />
                     Makna Simbolik
                 </li>
                 <li className="flex items-center text-gray-700">
-                    <FiCheckCircle className="text-orange-500 text-2xl mr-4" />
+                    <FiCheckCircle className="text-blue-500 text-2xl mr-4" />
                     Simbol Mitologi
                 </li>
                 <li className="flex items-center text-gray-700">
-                    <FiCheckCircle className="text-orange-500 text-2xl mr-4" />
+                    <FiCheckCircle className="text-blue-500 text-2xl mr-4" />
                     Makna Spiritual
                 </li>
                 <li className="flex items-center text-gray-700">
-                    <FiCheckCircle className="text-orange-500 text-2xl mr-4" />
+                    <FiCheckCircle className="text-blue-500 text-2xl mr-4" />
                     Tradisional Trusmi Pesisiran
                 </li>
                 </ul>
                 <Link href="/product">
-                    <button className="bg-orange-500 text-white px-6 py-3 rounded shadow hover:bg-orange-600 transition-all text-sm md:text-base">
+                    <button className="bg-blue-500 text-white px-6 py-3 rounded shadow hover:bg-blue-600 transition-all text-sm md:text-base">
                         Selengkapnya ➔
                     </button>
                 </Link>

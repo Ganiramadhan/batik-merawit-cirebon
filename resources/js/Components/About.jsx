@@ -43,21 +43,21 @@ const About = () => {
                         {/* List with React Icons */}
                         <ul className="space-y-4 text-gray-700 text-lg mb-6">
                             <li className="flex items-center">
-                                <FiCheckCircle className="text-orange-500 text-2xl mr-3" />
+                                <FiCheckCircle className="text-blue-500 text-2xl mr-3" />
                                 Menggunakan teknik khusus yang diwarisi dari seni Keratonan Cirebonan.
                             </li>
                             <li className="flex items-center">
-                                <FiCheckCircle className="text-orange-500 text-2xl mr-3" />
+                                <FiCheckCircle className="text-blue-500 text-2xl mr-3" />
                                 Dihasilkan oleh pengrajin lokal dengan sentuhan tradisional dan modern.
                             </li>
                             <li className="flex items-center">
-                                <FiCheckCircle className="text-orange-500 text-2xl mr-3" />
+                                <FiCheckCircle className="text-blue-500 text-2xl mr-3" />
                                 Memiliki motif yang kaya akan simbolisme mitologi dan spiritual.
                             </li>
                         </ul>
 
                         <Link href="/about">
-                        <button className="bg-orange-500 text-white text-lg px-6 py-3 rounded-lg shadow-lg hover:bg-orange-600 transition-all">
+                        <button className="bg-blue-500 text-white text-lg px-6 py-3 rounded-lg shadow-lg hover:bg-blue-600 transition-all">
                                 Pelajari Selengkapnya ➔
                             </button>
                         </Link>

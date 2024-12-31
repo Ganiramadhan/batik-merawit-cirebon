@@ -44,7 +44,7 @@ export default function AllProducts({ batikData, user }) {
                 handleMenuClick={handleMenuClick}
                 user={user}  // Pass user prop
             >
-                <nav className="flex justify-between items-center py-4 px-6 bg-orange-600 shadow-lg">
+                <nav className="flex justify-between items-center py-4 px-6 bg-blue-600 shadow-lg">
                     <div className="text-white text-2xl font-bold">Logo</div>
                     <ul className="flex space-x-6">
                         <li
@@ -83,7 +83,7 @@ export default function AllProducts({ batikData, user }) {
                 <div className="container mx-auto px-6 md:px-20">
                     <h1 className="text-3xl font-bold text-center text-gray-800 mb-12 flex items-center justify-center gap-4">
                         <span>
-                            <FiBox className="text-orange-600" />
+                            <FiBox className="text-blue-600" />
                         </span>
                         Semua Produk
                     </h1>
@@ -102,22 +102,22 @@ export default function AllProducts({ batikData, user }) {
                                     />
                                     <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex flex-col items-start justify-center p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                         <p className="text-lg text-gray-300 mb-2 flex items-center gap-1">
-                                            <FiCode className="text-orange-400" /> {batik?.code_batik || '-'}
+                                            <FiCode className="text-blue-400" /> {batik?.code_batik || '-'}
                                         </p>
                                         <p className="text-lg text-gray-300 mb-2 flex items-center gap-1">
-                                            <FiBox className="text-orange-400" /> {batik?.name || '-'}
+                                            <FiBox className="text-blue-400" /> {batik?.name || '-'}
                                         </p>
                                         <p className="text-lg text-gray-300 mb-2 flex items-center gap-1">
-                                            <FiCalendar className="text-orange-400" /> {batik?.production_year || '-'}
+                                            <FiCalendar className="text-blue-400" /> {batik?.production_year || '-'}
                                         </p>
                                         <p className="text-lg text-gray-300 mb-2 flex items-center gap-1">
-                                            <FiDroplet className="text-orange-400" /> {batik?.color_materials || '-'}
+                                            <FiDroplet className="text-blue-400" /> {batik?.color_materials || '-'}
                                         </p>
                                         <p className="text-lg text-gray-300 mb-2 flex items-center gap-1">
-                                            <FiLayers className="text-orange-400" /> {batik?.materials || '-'}
+                                            <FiLayers className="text-blue-400" /> {batik?.materials || '-'}
                                         </p>
                                         <p className="text-lg text-gray-300 flex items-center gap-1">
-                                            <FiUser className="text-orange-400" /> {batik?.member?.name || '-'}
+                                            <FiUser className="text-blue-400" /> {batik?.member?.name || '-'}
                                         </p>
                                     </div>
                                 </div>
@@ -130,7 +130,7 @@ export default function AllProducts({ batikData, user }) {
             </section>
 
             {/* Footer  */}
-            <WelcomeFooter />
+            {/* <WelcomeFooter /> */}
         </>
     );
 }

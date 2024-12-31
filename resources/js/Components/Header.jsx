@@ -1,9 +1,9 @@
 import React from "react";
 import { FiMenu, FiHome, FiInfo, FiShoppingBag, FiPhone, FiLogIn, FiGrid } from "react-icons/fi";  // Add FiUser icon
 import { Link } from '@inertiajs/react';
-import igiLogo from "../../images/IGI.png";
+import btmcLogo from "../../images/BTMC.png";
 
-export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMenuClick, user }) {  // Receive user prop
+export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMenuClick, user }) {
     // Function to handle smooth scrolling
     const handleScrollToSection = (id) => {
         const currentPath = window.location.pathname;
@@ -25,18 +25,23 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
             {/* Logo and Title */}
             <div className="flex items-center space-x-3">
                 <img
-                    src={igiLogo}
+                    src={btmcLogo}
                     alt="Logo"
-                    className="h-10"
+                    className="h-12"
                 />
-                <span className="text-xl text-gray-800 font-bold">KMPIG-BTMC</span>
+                <div>
+                    <span className="block text-xl text-gray-800 font-bold">KMPIG-BTMC</span>
+                    <span className="block text-sm text-gray-">
+                        Komunitas Masyarakat Perlindungan Indikasi Geografis - Batik Tulis Merawit Cirebon
+                    </span>
+                </div>
             </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden">
                 <button
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="text-gray-600 hover:text-orange-500 focus:outline-none"
+                    className="text-gray-600 hover:text-blue-500 focus:outline-none"
                 >
                     <FiMenu className="text-2xl" />
                 </button>
@@ -56,8 +61,8 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                         handleScrollToSection("home");
                         handleMenuClick("home");
                     }}
-                    className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                        activeMenu === "home" ? "text-orange-500 font-bold" : ""
+                    className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                        activeMenu === "home" ? "text-blue-600 font-bold" : ""
                     }`}
                 >
                     <FiHome className="inline md:mr-2" /> Home
@@ -71,11 +76,11 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                         handleScrollToSection("about");
                         handleMenuClick("about");
                     }}
-                    className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                        activeMenu === "about" ? "text-orange-500 font-bold" : ""
+                    className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                        activeMenu === "about" ? "text-blue-600 font-bold" : ""
                     }`}
                 >
-                    <FiInfo className="inline md:mr-2" /> About
+                    <FiInfo className="inline md:mr-2" /> Tentang Kami
                 </Link>
 
                 {/* Product Link */}
@@ -86,11 +91,11 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                         handleScrollToSection("product");
                         handleMenuClick("product");
                     }}
-                    className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                        activeMenu === "product" ? "text-orange-500 font-bold" : ""
+                    className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                        activeMenu === "product" ? "text-blue-600 font-bold" : ""
                     }`}
                 >
-                    <FiShoppingBag className="inline md:mr-2" /> Product
+                    <FiShoppingBag className="inline md:mr-2" /> Produk
                 </Link>
 
                 {/* Contact Link */}
@@ -101,11 +106,11 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                         handleScrollToSection("contact");
                         handleMenuClick("contact");
                     }}
-                    className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                        activeMenu === "contact" ? "text-orange-500 font-bold" : ""
+                    className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                        activeMenu === "contact" ? "text-blue-600 font-bold" : ""
                     }`}
                 >
-                    <FiPhone className="inline md:mr-2" /> Contact
+                    <FiPhone className="inline md:mr-2" /> Informasi
                 </Link>
 
                 {/* Conditionally Render Login or User Icon */}
@@ -113,8 +118,8 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                     <Link
                         href="/dashboard"
                         onClick={(e) => handleMenuClick("user")}
-                        className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                            activeMenu === "user" ? "text-orange-500 font-bold" : ""
+                        className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                            activeMenu === "user" ? "text-blue-600 font-bold" : ""
                         }`}
                     >
                         <FiGrid className="inline md:mr-2" /> Dashboard
@@ -123,8 +128,8 @@ export default function Header({ isMenuOpen, setIsMenuOpen, activeMenu, handleMe
                     <Link
                         href="/login"
                         onClick={(e) => handleMenuClick("login")}
-                        className={`block md:inline-block px-4 py-2 text-gray-600 hover:text-orange-500 transition ${
-                            activeMenu === "login" ? "text-orange-500 font-bold" : ""
+                        className={`block md:inline-block px-2 py-2 text-gray-600 hover:text-blue-500 transition ${
+                            activeMenu === "login" ? "text-blue-600 font-bold" : ""
                         }`}
                     >
                         <FiLogIn className="inline md:mr-2" /> Login

@@ -155,7 +155,7 @@ export default function AboutPage({user}) {
                     </div>
                 </section>
             </main>
-            <WelcomeFooter />
+            {/* <WelcomeFooter /> */}
         </>
     );
 }

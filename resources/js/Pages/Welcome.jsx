@@ -60,7 +60,7 @@ export default function Welcome({ totalBatik, totalMember, user }) {
                 <Contact />
 
                 {/* Footer Component */}
-                <WelcomeFooter />
+                {/* <WelcomeFooter /> */}
             </main>
         </div>
     );

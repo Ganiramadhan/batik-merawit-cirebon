@@ -528,22 +528,19 @@ export default function MemberData({ user, title, members }) {
                                                             ctx.drawImage(btmcImage, logoOffset, 20, logoSize, logoSize);
                                                             ctx.drawImage(igiImage, logoOffset + logoSize + 5, 20, logoSize, logoSize);
 
-                                                                  // Penyesuaian gambar member
+                                                            // Penyesuaian gambar member
                                                             let memberImageWidth, memberImageHeight;
 
                                                             const aspectRatio = memberImage.width / memberImage.height;
 
                                                             if (aspectRatio > 1) {
-                                                                // Landscape: Perbesar lebih lebar, tapi kalau terlalu lebar perkecil sedikit lebih banyak
-                                                                memberImageWidth = logoSize * 1.8; // Lebih kecil sedikit
+                                                                memberImageWidth = logoSize * 1.8;
                                                                 memberImageHeight = (memberImage.height / memberImage.width) * memberImageWidth;
                                                                 if (memberImageHeight < logoSize) {
-                                                                    // Jika tinggi terlalu kecil, sesuaikan
                                                                     memberImageHeight = logoSize;
                                                                     memberImageWidth = memberImageHeight * aspectRatio;
                                                                 }
 
-                                                                // Jika gambar terlalu lebar, perkecil lebih sedikit
                                                                 if (memberImageWidth > logoSize * 2) {
                                                                     memberImageWidth = logoSize * 1.9;
                                                                     memberImageHeight = (memberImage.height / memberImage.width) * memberImageWidth;
@@ -557,16 +554,13 @@ export default function MemberData({ user, title, members }) {
                                                                     memberImageHeight
                                                                 );
                                                             } else {
-                                                                // Portrait: Tinggi diperbesar, tapi kalau terlalu tinggi perkecil sedikit lebih banyak
-                                                                memberImageHeight = logoSize * 1.1; // Lebih kecil sedikit
+                                                                memberImageHeight = logoSize * 1.1;
                                                                 memberImageWidth = (memberImage.width / memberImage.height) * memberImageHeight;
                                                                 if (memberImageWidth < logoSize * 0.7) {
-                                                                    // Jika lebar terlalu kecil, sesuaikan
                                                                     memberImageWidth = logoSize * 0.7;
                                                                     memberImageHeight = memberImageWidth / aspectRatio;
                                                                 }
 
-                                                                // Jika gambar terlalu tinggi, perkecil sedikit lebih banyak
                                                                 if (memberImageHeight > logoSize * 1.2) {
                                                                     memberImageHeight = logoSize * 1.15;
                                                                     memberImageWidth = (memberImage.width / memberImage.height) * memberImageHeight;
@@ -600,17 +594,34 @@ export default function MemberData({ user, title, members }) {
                                                             ctx.font = `${0.9 * scale}px Arial`;
 
                                                             const address = member.address || "-";
-                                                            const firstLine = address.slice(0, 43);
-                                                            const secondLine = address.slice(43, 93);
+                                                            const wrapText = (text, maxWidth) => {
+                                                                const words = text.split(" ");
+                                                                const lines = [];
+                                                                let currentLine = "";
 
-                                                            const addressLines = [firstLine, secondLine].filter(line => line.length > 0);
+                                                                words.forEach((word) => {
+                                                                    const testLine = currentLine ? `${currentLine} ${word}` : word;
+                                                                    if (testLine.length > maxWidth) {
+                                                                        lines.push(currentLine);
+                                                                        currentLine = word;
+                                                                    } else {
+                                                                        currentLine = testLine;
+                                                                    }
+                                                                });
+
+                                                                if (currentLine) lines.push(currentLine);
+
+                                                                return lines;
+                                                            };
+
+                                                            const addressLines = wrapText(address, 40);
                                                             addressLines.forEach((line, index) => {
                                                                 ctx.fillText(line, width / 2, footerYOffset - 40 + index * 15);
                                                             });
 
                                                             // Gambar QR Code di kanan bawah
                                                             const qrXOffset = width - qrSize - 30;
-                                                            const qrYOffset = height - qrSize - 45; // Posisi disesuaikan
+                                                            const qrYOffset = height - qrSize - 45;
                                                             ctx.drawImage(qrImage, qrXOffset, qrYOffset, qrSize, qrSize);
 
                                                             // Tambahkan border di sekitar QR Code
@@ -662,6 +673,7 @@ export default function MemberData({ user, title, members }) {
                                                     </span>
                                                 </button>
                                             )}
+
 
                                         </div>
                                         </td>
